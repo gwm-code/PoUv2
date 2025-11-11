@@ -1,0 +1,4 @@
+[
+  {"id":"mistling","name":"Mistling","hp":24,"atk":5,"agi":6,"xp":6,"gold":4},
+  {"id":"shambler","name":"Shambler","hp":30,"atk":6,"agi":5,"xp":8,"gold":6}
+]

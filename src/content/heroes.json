@@ -1,0 +1,4 @@
+[
+  {"id":"ari","name":"Ari","class":"Blacksmith","base":{"hp":38,"atk":7,"agi":6}},
+  {"id":"bryn","name":"Bryn","class":"Mage","base":{"hp":36,"atk":6,"agi":7}}
+]

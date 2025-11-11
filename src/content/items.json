@@ -1,0 +1,4 @@
+[
+  {"id":"potion","name":"Potion","type":"consumable","effect":"heal","power":20,"price":10},
+  {"id":"antidote","name":"Antidote","type":"consumable","effect":"cure_poison","price":8}
+]

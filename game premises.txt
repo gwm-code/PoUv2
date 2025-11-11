@@ -1,0 +1,159 @@
+2D RPG Game Design Document: Mistheart Spire
+
+1. Core Premise & Hook
+
+Genre: 2D RPG (SNES-style / Final Fantasy VI, Zelda).
+
+Theme: Dark Fantasy / Post-Apocalyptic Survival (Mix of Game of Thrones, The Walking Dead, The Last of Us).
+
+The Plague: A Grey Mist rolls down the Ironpeak Mountains. Once it reaches a human or animal, it takes over the mind, turning them into a "zombie" or "undead" creature that attacks all others.
+
+The Goal: Reach the Mistheart Spire and cut the source of the mist.
+
+The Twist (The Hook): Upon arrival, it is revealed that one of the seven heroes is the Arch-Mage who wrote the plague: "I wrote the plague. And I’m not finished."
+
+2. Main Character (The Player)
+
+Name: Player names the Hero.
+
+Backstory: 18 years a slave.
+
+Lifetime Class (Permanent Choice): This choice unlocks unique crafting/gathering options and specialized dialogue/quest paths. The choice unlocks a "Title" dialogue option in towns.
+
+Blacksmith Slave:
+
+Gameplay: Ability to access a "Create" option (Buy, Sell, Create) at town blacksmiths/armories to forge custom gear.
+
+Narrative: Unique dialogue and quests with local smiths (mix of impressed recognition and gruff skepticism).
+
+Alchemist Slave:
+
+Gameplay: Ability to access a "Create" option (Buy, Sell, Create) at town alchemy labs to create potions (poison, heal, +stats, etc.).
+
+Unique Hook: Can craft ultra-rare Transformation Potions that temporarily grant the skills of another in-game class.
+
+Hunter Slave:
+
+Gameplay: Ability to skin/gather materials from slayed enemies (drops materials for selling/crafting).
+
+Narrative: Unlocks special "bounty" side-quests from general stores (fetch X amount of material for gold + XP).
+
+3. The Roster (Seven Heroes)
+
+Active Party: 3 heroes in battle.
+
+Total Roster: 7 heroes.
+
+The Traitor: One of the seven is the Arch-Mage; the identity is unknown until the final floor.
+
+Hero
+
+Class/Role
+
+Backstory (Potential Motive for Traitor)
+
+1. Eyla
+
+River Elf Healer
+
+Personal Failure: Saw her sister taken by the Mist while carelessly gathering materials; failed to heal her. Believes magic/spells are inherently flawed against the plague. Motive could be a radical, desperate attempt to create an impossible cure.
+
+2. Greyor
+
+Paladin Tank
+
+Shame/Betrayal: Was a Paladin leader. Saw his battalion turn against each other when the Mist first hit and ran away in shame. Motive could be a need for radical, absolute order or penance through destruction.
+
+3. Shawath
+
+Rogue Assassin
+
+Self-Preservation: Only cares about gold and survival. Joined the party because the Mist threatens his source of wealth and his ability to live comfortably. Motive could be a high-stakes scheme for ultimate power or riches that got out of control.
+
+4. Fynrey
+
+Classic Mage
+
+Forbidden Knowledge: Hundreds of years old, Fynrey believes the Mist is a form of old dark magic he thought was destroyed ages ago. Motive could be a desperate measure to combat an even older, unknown evil using the Mist as a counter-weapon.
+
+5. Gilla
+
+Alchemist Specialist
+
+Accidental Creation: A scientist (not a magic user) who was studying the Mist. Accidentally created a "weaker" version of the Mist, which possessed their master. Gilla fled the locked, burning lab and is now obsessed with finding a cure. Motive is tragic—trying to fix their mistake, or perhaps creating the plague to force research.
+
+6. Zakarath
+
+Shapeshifter Exile
+
+Rejection: Exiled by civilization when discovered as the only Shapeshifter. Lived in isolation until the Mist forced him down. Bitter towards civilization. Motive could be revenge on the world that rejected him, using the Mist to clear the lands for his solitary life.
+
+7. Kroge
+
+Fallen Royal Ranger-Knight
+
+Failed Duty/Revenge: Former King's personal guard. The King ordered the execution of his Mist-infected wife and child, which Kroge refused to carry out. He was stripped of title and exiled. Motive is revenge on the failed, weak established authority (royalty/healers).
+
+4. Combat Mechanics & Progression
+
+Combat System: Active Time Battle (ATB) where heroes and enemies race to fill their turn bars based on Agility.
+
+Possession Timer (Possession Status): When a hero is afflicted, their turns can be skipped and they are forced to attack allies (Mist Possession).
+
+Counter-Play: Curing items/potions (Gilla), certain spells (Eyla), running away, or winning the fight quickly.
+
+XP/Leveling:
+
+Separate XP bars for everyone.
+
+XP gained from hitting enemies.
+
+Triple XP bonus for the hero who lands the final blow (kill).
+
+XP from side-quests can be manually distributed by the player.
+
+Skills/Traits:
+
+Core Stats: Strength (Str), Agility (Agi), Endurance (End), Mana (MP).
+
+Combat Skills: Attack, Defend, Parry, Dodge, Resist, Counter, Crit.
+
+Traits: Unlocked by leveling (hitting certain levels). Player chooses between two randomly generated Traits per level-up.
+
+Trait Usage: Traits are active abilities (e.g., Savage: Double Str/Agi, but all enemies target the hero) that last for 3 player turns and can only be used once per battle.
+
+5. Aesthetics & Structure
+
+Visual Style: 16-bit pixel art (similar to Final Fantasy VI).
+
+Music Style: Epic orchestral tracks outside of battle (LOTR style); intense, epic battle music. Dungeons are darker/atmospheric, towns are cheerful, world map is neutral.
+
+6. World Structure & Replayability
+
+Procedural Generation: The world map, location of towns, dungeons, and town NPC/shop layouts are randomized for every playthrough. Dungeon layouts are also randomized (size is fixed, but internal maze/rooms change).
+
+Areas: 6 Biomes → 12 Towns → 18 Dungeons → 1 Final Spire.
+
+Encounters: Random ATB encounters every 2–20 tiles of movement on the world map.
+
+7. Equipment & Crafting
+
+Rarity Ranks: Common, Rare, Epic, Legendary, Mythic.
+
+Affixes: Gear can grant +Stats, +Abilities, or +Resistances.
+
+Crafting (Blacksmith Slave): Required to access the highest-rank Mythic gear.
+
+Materials: High-rank gear requires both rare, key items (from late-game/specific bosses) AND common, tiered materials (from early-game grinding), keeping the entire world map relevant.
+
+8. Meta-Progression
+
+Shared Vault: After the first few playthroughs (e.g., 2–3), a shared storage/bank/vault option is unlocked. Players can deposit and withdraw gear, items, potions, and gold between playthroughs, allowing for potentially "OP" characters in future runs.
+
+9. Endings
+
+A. Execute the Traitor: The Mist stops. All afflicted (undead) collapse and die. The uninfected are saved.
+
+B. Forgive the Traitor: Traitor rewrites the Mist into a vaccine/cure, saving everyone.
+
+(Ending C: Deleted for now)
