@@ -1,0 +1,16 @@
+# Build outputs
+dist/
+tsconfig.tsbuildinfo
+
+# Dependencies
+node_modules/
+node_modules.old/
+
+# Local assets and exports
+screenshots of the game/
+game graphics/
+
+# Archives and misc
+*.zip
+*.log
+.DS_Store
