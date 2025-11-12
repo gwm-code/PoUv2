@@ -1,4 +1,51 @@
 [
-  {"id":"ari","name":"Ari","class":"Blacksmith","base":{"hp":38,"atk":7,"agi":6}},
-  {"id":"bryn","name":"Bryn","class":"Mage","base":{"hp":36,"atk":6,"agi":7}}
+  {
+    "id": "eyla",
+    "name": "Eyla",
+    "class": "River Elf Healer",
+    "base": { "hp": 34, "atk": 5, "agi": 7, "mp": 24 },
+    "abilities": ["riverlight", "tidal-mend", "mist-purge"]
+  },
+  {
+    "id": "greyor",
+    "name": "Greyor",
+    "class": "Paladin",
+    "base": { "hp": 46, "atk": 8, "agi": 5, "mp": 12 },
+    "abilities": ["radiant-cleave", "warding-stance", "judgment-smite"]
+  },
+  {
+    "id": "shawath",
+    "name": "Shawath",
+    "class": "Rogue Assassin",
+    "base": { "hp": 34, "atk": 9, "agi": 10, "mp": 8 },
+    "abilities": ["shadow-fang", "bleeding-step", "mist-vanish"]
+  },
+  {
+    "id": "fynrey",
+    "name": "Fynrey",
+    "class": "Archmage",
+    "base": { "hp": 32, "atk": 5, "agi": 6, "mp": 28 },
+    "abilities": ["aether-flare", "time-slip", "void-lance"]
+  },
+  {
+    "id": "gilla",
+    "name": "Gilla",
+    "class": "Alchemist",
+    "base": { "hp": 36, "atk": 6, "agi": 7, "mp": 20 },
+    "abilities": ["volatile-flask", "panacea-cloud", "mist-sapper"]
+  },
+  {
+    "id": "zakarath",
+    "name": "Zakarath",
+    "class": "Shapeshifter",
+    "base": { "hp": 40, "atk": 8, "agi": 9, "mp": 10 },
+    "abilities": ["talon-shift", "feral-guard", "echo-strike"]
+  },
+  {
+    "id": "kroge",
+    "name": "Kroge",
+    "class": "Ranger-Knight",
+    "base": { "hp": 38, "atk": 9, "agi": 8, "mp": 14 },
+    "abilities": ["arrowstorm", "hunters-resolve", "royal-rebuke"]
+  }
 ]

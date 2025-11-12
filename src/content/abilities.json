@@ -1,0 +1,233 @@
+[
+  {
+    "id": "riverlight",
+    "hero": "eyla",
+    "name": "Riverlight",
+    "category": "spell",
+    "cost": 4,
+    "kind": "heal",
+    "power": 11,
+    "target": "ally",
+    "description": "Channels clear river glow to mend an ally."
+  },
+  {
+    "id": "tidal-mend",
+    "hero": "eyla",
+    "name": "Tidal Mend",
+    "category": "spell",
+    "cost": 8,
+    "kind": "heal",
+    "power": 16,
+    "target": "ally",
+    "description": "A surge of restorative water that tops off grievous wounds."
+  },
+  {
+    "id": "mist-purge",
+    "hero": "eyla",
+    "name": "Mist Purge",
+    "category": "spell",
+    "cost": 5,
+    "kind": "attack",
+    "power": 6,
+    "target": "enemy",
+    "description": "Lashes an enemy with concentrated cleansing mist."
+  },
+  {
+    "id": "radiant-cleave",
+    "hero": "greyor",
+    "name": "Radiant Cleave",
+    "category": "skill",
+    "cost": 2,
+    "kind": "attack",
+    "power": 7,
+    "target": "enemy",
+    "description": "Holy swing that sears foes with disciplined light."
+  },
+  {
+    "id": "warding-stance",
+    "hero": "greyor",
+    "name": "Warding Stance",
+    "category": "skill",
+    "cost": 4,
+    "kind": "heal",
+    "power": 8,
+    "target": "self",
+    "description": "Greyor braces behind his shield, restoring vigor while guarding."
+  },
+  {
+    "id": "judgment-smite",
+    "hero": "greyor",
+    "name": "Judgment Smite",
+    "category": "skill",
+    "cost": 5,
+    "kind": "attack",
+    "power": 10,
+    "target": "enemy",
+    "description": "A heavy finishing blow reserved for corrupted foes."
+  },
+  {
+    "id": "shadow-fang",
+    "hero": "shawath",
+    "name": "Shadow Fang",
+    "category": "skill",
+    "cost": 1,
+    "kind": "attack",
+    "power": 6,
+    "target": "enemy",
+    "description": "Quick stab that exploits any exposed flank."
+  },
+  {
+    "id": "bleeding-step",
+    "hero": "shawath",
+    "name": "Bleeding Step",
+    "category": "skill",
+    "cost": 3,
+    "kind": "attack",
+    "power": 8,
+    "target": "enemy",
+    "description": "A blur of twin blades that leaves the target reeling."
+  },
+  {
+    "id": "mist-vanish",
+    "hero": "shawath",
+    "name": "Mist Vanish",
+    "category": "skill",
+    "cost": 2,
+    "kind": "heal",
+    "power": 6,
+    "target": "self",
+    "description": "Fades into the haze, recovering while enemies lose track."
+  },
+  {
+    "id": "aether-flare",
+    "hero": "fynrey",
+    "name": "Aether Flare",
+    "category": "spell",
+    "cost": 4,
+    "kind": "attack",
+    "power": 9,
+    "target": "enemy",
+    "description": "Launches compressed aether into a focused burst."
+  },
+  {
+    "id": "time-slip",
+    "hero": "fynrey",
+    "name": "Time Slip",
+    "category": "spell",
+    "cost": 5,
+    "kind": "heal",
+    "power": 9,
+    "target": "ally",
+    "description": "Rewinds an ally's wounds a few heartbeats."
+  },
+  {
+    "id": "void-lance",
+    "hero": "fynrey",
+    "name": "Void Lance",
+    "category": "spell",
+    "cost": 7,
+    "kind": "attack",
+    "power": 12,
+    "target": "enemy",
+    "description": "Pierces armor with a drilling beam of nothingness."
+  },
+  {
+    "id": "volatile-flask",
+    "hero": "gilla",
+    "name": "Volatile Flask",
+    "category": "skill",
+    "cost": 2,
+    "kind": "attack",
+    "power": 7,
+    "target": "enemy",
+    "description": "Tosses a caustic brew that detonates on contact."
+  },
+  {
+    "id": "panacea-cloud",
+    "hero": "gilla",
+    "name": "Panacea Cloud",
+    "category": "spell",
+    "cost": 6,
+    "kind": "heal",
+    "power": 10,
+    "target": "ally",
+    "description": "A gentle aerosol tonic that restores allies in the mist."
+  },
+  {
+    "id": "mist-sapper",
+    "hero": "gilla",
+    "name": "Mist Sapper",
+    "category": "skill",
+    "cost": 0,
+    "kind": "attack",
+    "power": 5,
+    "target": "enemy",
+    "description": "Siphons the enemy's corrupted vapors to weaken them."
+  },
+  {
+    "id": "talon-shift",
+    "hero": "zakarath",
+    "name": "Talon Shift",
+    "category": "skill",
+    "cost": 2,
+    "kind": "attack",
+    "power": 8,
+    "target": "enemy",
+    "description": "Momentarily morphs limbs into raking talons."
+  },
+  {
+    "id": "feral-guard",
+    "hero": "zakarath",
+    "name": "Feral Guard",
+    "category": "skill",
+    "cost": 3,
+    "kind": "heal",
+    "power": 7,
+    "target": "self",
+    "description": "Hardened hide and regenerative focus close wounds mid-fight."
+  },
+  {
+    "id": "echo-strike",
+    "hero": "zakarath",
+    "name": "Echo Strike",
+    "category": "skill",
+    "cost": 5,
+    "kind": "attack",
+    "power": 11,
+    "target": "enemy",
+    "description": "Hits twice in rapid succession thanks to mirrored forms."
+  },
+  {
+    "id": "arrowstorm",
+    "hero": "kroge",
+    "name": "Arrowstorm",
+    "category": "skill",
+    "cost": 1,
+    "kind": "attack",
+    "power": 6,
+    "target": "enemy",
+    "description": "Rapid shots that keep pressure on encroaching foes."
+  },
+  {
+    "id": "hunters-resolve",
+    "hero": "kroge",
+    "name": "Hunter's Resolve",
+    "category": "skill",
+    "cost": 4,
+    "kind": "heal",
+    "power": 7,
+    "target": "ally",
+    "description": "A rallying call that steadies an ally's aim and spirit."
+  },
+  {
+    "id": "royal-rebuke",
+    "hero": "kroge",
+    "name": "Royal Rebuke",
+    "category": "skill",
+    "cost": 4,
+    "kind": "attack",
+    "power": 10,
+    "target": "enemy",
+    "description": "A precise charged shot reserved for elite threats."
+  }
+]

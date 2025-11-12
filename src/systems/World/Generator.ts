@@ -23,7 +23,11 @@ export interface GeneratedWorld {
   tiles:number[][]
   biomeMap:BiomeId[][]
   dungeons:DungeonLayout[]
+  forestEdges:number[][]
+  riverBanks:number[][]
 }
+
+const FIELD_TILE = 9
 
 export function generateWorld(width:number, height:number, opts:WorldGenerationOptions = {}):GeneratedWorld {
   const seed = normalizeSeed(opts.seed)
@@ -61,10 +65,13 @@ export function generateWorld(width:number, height:number, opts:WorldGenerationO
 
   const dungeonCount = opts.dungeonCount ?? 3
   const dungeons = Array.from({length:dungeonCount}, (_,i)=>makeDungeon(`dng-${i}`, width, height, biomeMap, tiles, rng))
-  addTownsAndRoads(tiles, rng)
+  const towns = addTownsAndRoads(tiles, rng)
   carveRivers(tiles, heightMap, rng)
-  addTownsAndRoads(tiles, rng)
-  return { seed, tiles, biomeMap, dungeons }
+  connectTownNetwork(tiles, towns)
+  growFieldsNearTowns(tiles, towns, rng)
+  const forestEdges = computeForestEdges(tiles)
+  const riverBanks = computeRiverBanks(tiles)
+  return { seed, tiles, biomeMap, dungeons, forestEdges, riverBanks }
 }
 
 function tileFromHeight(h:number, rng:()=>number){
@@ -114,26 +121,161 @@ function pick<T>(arr:readonly T[], rng:()=>number):T{
 }
 
 function addTownsAndRoads(tiles:number[][], rng:()=>number){
+  const towns = placeTownClusters(tiles, rng)
+  connectTownNetwork(tiles, towns)
+  return towns
+}
+
+function placeTownClusters(tiles:number[][], rng:()=>number){
   const height = tiles.length
   const width = tiles[0]?.length ?? 0
   const townCount = Math.max(2, Math.floor((width*height)/400))
+  const clusterCount = Math.max(1, Math.floor(townCount/2))
+  const clusters:{x:number;y:number}[] = []
+  let guard=0
+  while (clusters.length<clusterCount && guard++<500){
+    const x = Math.floor(rng()*width)
+    const y = Math.floor(rng()*height)
+    if (isTownCandidate(tiles, x, y)){
+      clusters.push({x,y})
+    }
+  }
+  if (!clusters.length){
+    clusters.push({ x: Math.floor(width/2), y: Math.floor(height/2) })
+  }
   const towns:{x:number;y:number}[] = []
   for (let i=0;i<townCount;i++){
-    let attempts=0
-    while (attempts++<200){
-      const x = Math.floor(rng()*width)
-      const y = Math.floor(rng()*height)
-      const tile = tiles[y]?.[x]
-      if (tile===1 || tile===0 || tile===5){
-        tiles[y][x] = 8 // town
-        towns.push({x,y})
-        break
+    const cluster = clusters[Math.floor(rng()*clusters.length)]
+    const spot = findTownSpotNear(cluster, tiles, rng, towns, width, height)
+    if (spot){
+      tiles[spot.y][spot.x] = 8
+      towns.push(spot)
+    }
+  }
+  return towns
+}
+
+function isTownCandidate(tiles:number[][], x:number, y:number){
+  const tile = tiles[y]?.[x]
+  return tile===0 || tile===1 || tile===5 || tile===FIELD_TILE
+}
+
+function findTownSpotNear(center:{x:number;y:number}, tiles:number[][], rng:()=>number, placed:{x:number;y:number}[], width:number, height:number){
+  let attempts=0
+  let radius = 3
+  while (attempts++<250){
+    const angle = rng()*Math.PI*2
+    const distance = radius + rng()*4
+    const x = Math.max(0, Math.min(width-1, Math.round(center.x + Math.cos(angle)*distance + rng()*2-1)))
+    const y = Math.max(0, Math.min(height-1, Math.round(center.y + Math.sin(angle)*distance + rng()*2-1)))
+    if (!isTownCandidate(tiles, x, y)) continue
+    if (placed.some(p=>Math.abs(p.x-x)+Math.abs(p.y-y) < 3)) continue
+    return { x, y }
+  }
+  return undefined
+}
+
+function connectTownNetwork(tiles:number[][], towns:{x:number;y:number}[]){
+  if (towns.length<2) return
+  const remaining = towns.slice(1)
+  const connected = [towns[0]]
+  while (remaining.length){
+    let bestA=connected[0], bestB=remaining[0], bestDist=Number.MAX_SAFE_INTEGER
+    for (const a of connected){
+      for (const b of remaining){
+        const dist = Math.abs(a.x-b.x)+Math.abs(a.y-b.y)
+        if (dist<bestDist){
+          bestDist = dist; bestA = a; bestB = b
+        }
+      }
+    }
+    carveRoad(tiles, bestA, bestB)
+    const idx = remaining.indexOf(bestB)
+    if (idx>=0){
+      connected.push(bestB)
+      remaining.splice(idx,1)
+    } else {
+      break
+    }
+  }
+}
+
+function growFieldsNearTowns(tiles:number[][], towns:{x:number;y:number}[], rng:()=>number){
+  const height = tiles.length
+  const width = tiles[0]?.length ?? 0
+  for (const town of towns){
+    const radius = 3 + Math.floor(rng()*2)
+    for (let dy=-radius; dy<=radius; dy++){
+      for (let dx=-radius; dx<=radius; dx++){
+        const x = town.x + dx
+        const y = town.y + dy
+        if (x<0||y<0||x>=width||y>=height) continue
+        if (dx===0 && dy===0) continue
+        const current = tiles[y][x]
+        if (!isFieldCandidate(current)) continue
+        const distance = Math.abs(dx)+Math.abs(dy)
+        const falloff = distance<=1 ? 0.9 : distance===2 ? 0.7 : 0.45
+        if (rng() < falloff){
+          tiles[y][x] = FIELD_TILE
+        }
       }
     }
   }
-  for (let i=1;i<towns.length;i++){
-    carveRoad(tiles, towns[i-1], towns[i])
+}
+
+function isFieldCandidate(tile:number){
+  return tile===0 || tile===1 || tile===5
+}
+
+function computeForestEdges(tiles:number[][]){
+  const height = tiles.length
+  const width = tiles[0]?.length ?? 0
+  const mask = Array.from({length:height}, ()=>Array(width).fill(0))
+  for (let y=0;y<height;y++){
+    for (let x=0;x<width;x++){
+      if (tiles[y][x]!==5) continue
+      let bits=0
+      if (isForestEdge(tiles, x, y-1)) bits|=1
+      if (isForestEdge(tiles, x+1, y)) bits|=2
+      if (isForestEdge(tiles, x, y+1)) bits|=4
+      if (isForestEdge(tiles, x-1, y)) bits|=8
+      if (bits) mask[y][x]=bits
+    }
   }
+  return mask
+}
+
+function isForestEdge(tiles:number[][], x:number, y:number){
+  const tile = tiles[y]?.[x]
+  if (typeof tile === 'undefined') return true
+  return tile!==5 && tile!==2 && tile!==3
+}
+
+function computeRiverBanks(tiles:number[][]){
+  const height = tiles.length
+  const width = tiles[0]?.length ?? 0
+  const mask = Array.from({length:height}, ()=>Array(width).fill(0))
+  for (let y=0;y<height;y++){
+    for (let x=0;x<width;x++){
+      const tile = tiles[y][x]
+      if (!isBankCandidate(tile)) continue
+      let bits=0
+      if (isWater(tiles, x, y-1)) bits|=1
+      if (isWater(tiles, x+1, y)) bits|=2
+      if (isWater(tiles, x, y+1)) bits|=4
+      if (isWater(tiles, x-1, y)) bits|=8
+      if (bits) mask[y][x]=bits
+    }
+  }
+  return mask
+}
+
+function isBankCandidate(tile:number){
+  return tile===0 || tile===1 || tile===FIELD_TILE
+}
+
+function isWater(tiles:number[][], x:number, y:number){
+  return tiles[y]?.[x]===2
 }
 
 function carveRoad(tiles:number[][], from:{x:number;y:number}, to:{x:number;y:number}){
@@ -210,20 +352,22 @@ function carveRivers(tiles:number[][], heightMap:number[][], rng:()=>number){
       const x=Math.floor(rng()*width)
       const y=Math.floor(rng()*height)
       if (heightMap[y][x]>0.75){
-        digRiver(tiles,heightMap,x,y)
+        digRiver(tiles,heightMap,x,y,rng)
         break
       }
     }
   }
 }
 
-function digRiver(tiles:number[][], heightMap:number[][], sx:number, sy:number){
+function digRiver(tiles:number[][], heightMap:number[][], sx:number, sy:number, rng:()=>number){
   const height=tiles.length
   const width=tiles[0]?.length ?? 0
   let x=sx, y=sy
   for (let steps=0; steps<width+height; steps++){
     if (x<0||y<0||x>=width||y>=height) break
-    tiles[y][x]=2
+    if (!isProtectedTile(tiles[y][x])){
+      tiles[y][x]=2
+    }
     const neighbors=[[1,0],[-1,0],[0,1],[0,-1]]
     let best=heightMap[y][x], nextX=x, nextY=y
     for (const [dx,dy] of neighbors){
@@ -235,13 +379,17 @@ function digRiver(tiles:number[][], heightMap:number[][], sx:number, sy:number){
       }
     }
     if (nextX===x && nextY===y){
-      const dir=neighbors[Math.floor(Math.random()*neighbors.length)]
+      const dir=neighbors[Math.floor(rng()*neighbors.length)]
       x+=dir[0]; y+=dir[1]
     } else {
       x=nextX; y=nextY
     }
     if (x<=1||y<=1||x>=width-2||y>=height-2) break
   }
+}
+
+function isProtectedTile(tile:number){
+  return tile===8 || tile===4
 }
 
 

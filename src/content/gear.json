@@ -1,0 +1,44 @@
+[
+  {
+    "id": "iron-helm",
+    "name": "Iron Helm",
+    "slot": "head",
+    "bonuses": { "hp": 4 }
+  },
+  {
+    "id": "mistwarden-mail",
+    "name": "Mistwarden Mail",
+    "slot": "torso",
+    "bonuses": { "hp": 8 }
+  },
+  {
+    "id": "ember-splitter",
+    "name": "Ember Splitter",
+    "slot": "wield1",
+    "bonuses": { "atk": 3 }
+  },
+  {
+    "id": "runed-focus",
+    "name": "Runed Focus",
+    "slot": "wield2",
+    "bonuses": { "mp": 6 }
+  },
+  {
+    "id": "stormband",
+    "name": "Stormband",
+    "slot": "ring",
+    "bonuses": { "agi": 2 }
+  },
+  {
+    "id": "aether-amulet",
+    "name": "Aether Amulet",
+    "slot": "amulet",
+    "bonuses": { "mp": 4 }
+  },
+  {
+    "id": "scout-greaves",
+    "name": "Scout Greaves",
+    "slot": "legs",
+    "bonuses": { "agi": 1, "hp": 2 }
+  }
+]

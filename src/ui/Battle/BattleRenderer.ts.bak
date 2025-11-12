@@ -1,0 +1,499 @@
+const battlefieldImage = new Image()
+battlefieldImage.src = new URL('../../assets/backgrounds/fields.png', import.meta.url).toString()
+type SpriteCache = Record<string, HTMLCanvasElement|HTMLImageElement>
+const heroSprites:SpriteCache = {}
+const enemySprites:SpriteCache = {}
+function loadSprite(type:'heroes'|'enemies', id:string){
+  const key = id.toLowerCase()
+  const store = type==='heroes'?heroSprites:enemySprites
+  if (!store[key]){
+    const img = new Image()
+    img.onload = ()=>{ store[key] = stripWhiteBackground(img) }
+    img.src = new URL(`../../assets/sprites/${type}/${key}.png`, import.meta.url).toString()
+    store[key]=img
+  }
+  return store[key]
+}
+
+interface Frame { x:number; y:number; w:number; h:number }
+
+export function drawBattleRenderer(ctx: CanvasRenderingContext2D, state: any, frame: Frame) {
+  const innerPad = Math.max(8, Math.round(Math.min(frame.w, frame.h)*0.03))
+  const inner = { x: frame.x + innerPad, y: frame.y + innerPad, w: frame.w - innerPad*2, h: frame.h - innerPad*2 }
+  drawBattlefield(ctx, inner)
+  const topBannerHeight = 26
+  const hudGap = 6
+  const hudHeight = Math.max(92, inner.h * 0.34)
+  const battlefieldHeight = inner.h - hudHeight - hudGap
+  const battlefield = { x: inner.x, y: inner.y + topBannerHeight, w: inner.w, h: battlefieldHeight - topBannerHeight }
+  ctx.save()
+  ctx.fillStyle = 'rgba(6,4,20,0.22)'
+  ctx.fillRect(battlefield.x, battlefield.y, battlefield.w, battlefield.h)
+  ctx.strokeStyle = 'rgba(122,110,191,0.35)'
+  ctx.lineWidth = 2
+  ctx.strokeRect(battlefield.x + 1, battlefield.y + 1, battlefield.w - 2, battlefield.h - 2)
+  ctx.restore()
+  const hudY = battlefield.y + battlefield.h + hudGap
+
+  const columnGap = 6
+  const minCommand = 140
+  let commandWidth = Math.max(minCommand, inner.w * 0.32)
+  const infoWidth = inner.w - commandWidth - columnGap
+  const infoGap = 8
+  let enemyHeight = Math.max(82, hudHeight * 0.55)
+  let partyHeight = hudHeight - enemyHeight - infoGap
+  if (partyHeight < 64){
+    const deficit = 64 - partyHeight
+    partyHeight = 64
+    enemyHeight = Math.max(70, hudHeight - partyHeight - infoGap)
+  }
+  if (enemyHeight + partyHeight + infoGap > hudHeight){
+    const over = enemyHeight + partyHeight + infoGap - hudHeight
+    enemyHeight = Math.max(70, enemyHeight - over * 0.6)
+    partyHeight = Math.max(60, partyHeight - over * 0.4)
+  }
+  const commandPanel = { x: inner.x, y: hudY, w: commandWidth, h: hudHeight }
+  const targetPanel = { x: commandPanel.x + commandPanel.w + columnGap, y: hudY, w: infoWidth, h: enemyHeight }
+  const partyPanel = { x: targetPanel.x, y: targetPanel.y + enemyHeight + infoGap, w: infoWidth, h: partyHeight }
+
+  decayEffects(state.effects, state.heroes, state.enemies)
+  drawBattlefield(ctx, battlefield)
+  drawEnemyLine(ctx, battlefield, state.enemies, state.cursor?.targetIdx, state.phase, state.effects, state.cursor?.targetTeam)
+  drawHeroLine(ctx, battlefield, state.heroes, state.cursor?.heroIdx, state.effects, state.phase, state.cursor?.targetIdx, state.cursor?.targetTeam)
+  drawCommandPanel(ctx, commandPanel, state)
+  drawTargetPanel(ctx, targetPanel, state, state.phase)
+  drawPartyPanel(ctx, partyPanel, state.heroes)
+  drawTopBanner(ctx, inner, state.phase, state.log, state.prompt)
+  if (state.phase === 'SUMMARY'){
+    drawSummary(ctx, frame, state)
+  }
+}
+
+function drawBattlefield(ctx:CanvasRenderingContext2D, area:Frame){
+  if (battlefieldImage.complete && battlefieldImage.naturalWidth){
+    ctx.drawImage(battlefieldImage, area.x, area.y, area.w, area.h)
+    return
+  }
+  const sky = ctx.createLinearGradient(area.x, area.y, area.x, area.y + area.h)
+  sky.addColorStop(0, '#4d77c7')
+  sky.addColorStop(0.45, '#9ec2ef')
+  sky.addColorStop(0.6, '#7fc27f')
+  sky.addColorStop(1, '#4a8637')
+  ctx.fillStyle = sky
+  ctx.fillRect(area.x, area.y, area.w, area.h)
+  ctx.fillStyle='#3e612a'
+  ctx.fillRect(area.x, area.y + area.h*0.55, area.w, area.h*0.45)
+}
+
+function drawEnemyLine(ctx:CanvasRenderingContext2D, area:Frame, enemies:any[], targetIdx:number, phase:string, effects:Record<string,{hitTimer:number; koAlpha:number; popup?:any}>, targetTeam?:string){
+  const rowY = area.y + area.h*0.62
+  const spacing = 56
+  const startX = area.x + 32
+  const effectiveTarget = typeof targetIdx === 'number' && targetIdx>=0
+    ? targetIdx
+    : nextAliveIndex(enemies)
+  const allowArrow = phase==='TARGET_SELECT' && targetTeam!=='heroes'
+  enemies.forEach((enemy, i)=>{
+    const x = startX + i*spacing
+    const highlight = allowArrow && i===effectiveTarget
+    drawBattlerSprite(ctx, x, rowY - 60, enemy, highlight, 'enemies', false, effects[enemy.id])
+    if (highlight){
+      drawTargetArrow(ctx, x+24, rowY - 48)
+    }
+  })
+}
+
+function drawHeroLine(ctx:CanvasRenderingContext2D, area:Frame, heroes:any[], heroIdx:number, effects:Record<string,{hitTimer:number; koAlpha:number; popup?:any}>, phase:string, targetIdx:number, targetTeam?:string){
+  const baseX = area.x + area.w - 88
+  const baseY = area.y + area.h*0.64
+  const spacingX = 36
+  const spacingY = 14
+  heroes.forEach((hero, i)=>{
+    const targeted = phase==='TARGET_SELECT' && targetTeam==='heroes' && i===targetIdx
+    const posX = baseX - i*spacingX
+    const posY = baseY + i*spacingY
+    drawBattlerSprite(ctx, posX, posY - 60, hero, heroIdx===i, 'heroes', false, effects[hero.id])
+    if (targeted){
+      drawTargetArrow(ctx, posX + 24, posY - 86)
+    }
+  })
+}
+
+function drawBattlerSprite(ctx:CanvasRenderingContext2D, x:number, y:number, battler:any, highlight:boolean, type:'heroes'|'enemies', flip?:boolean, effect?:{hitTimer:number; koAlpha:number; popup?:{value:number; timer:number; mode:string; rise:number}}){
+  const baseId = (battler.id || '').replace(/\d+$/,'')
+  const spriteKey = battler.alive ? baseId : `${baseId}-defeated`
+  const sprite = spriteKey ? loadSprite(type, spriteKey) : undefined
+  ctx.save()
+  let drawn=false
+  const yOffset = battler.alive ? 0 : 32
+  if (sprite){
+    if (sprite instanceof HTMLImageElement){
+      if (sprite.complete && sprite.naturalWidth){
+        if (flip){
+          ctx.save()
+          ctx.scale(-1,1)
+          ctx.drawImage(sprite, -(x+64), y+yOffset, 64, 64)
+          ctx.restore()
+        } else {
+          ctx.drawImage(sprite, x, y+yOffset, 64, 64)
+        }
+        drawn=true
+      }
+    } else {
+      if (flip){
+        ctx.save()
+        ctx.scale(-1,1)
+        ctx.drawImage(sprite, -(x+64), y+yOffset, 64, 64)
+        ctx.restore()
+      } else {
+        ctx.drawImage(sprite, x, y+yOffset, 64, 64)
+      }
+      drawn=true
+    }
+  }
+  if (!drawn){
+    ctx.fillStyle = battler.alive ? '#f7d18b' : '#4b3c58'
+    ctx.fillRect(x, y+yOffset, 40, 40)
+    ctx.fillStyle = battler.alive ? '#2e1c34' : '#1f102a'
+    ctx.fillRect(x+8, y+yOffset+8, 24, 12)
+  }
+  if (effect){
+    if (effect.hitTimer>0 && sprite){
+      ctx.save()
+      ctx.globalCompositeOperation='lighter'
+      ctx.globalAlpha = Math.min(0.7, effect.hitTimer*3)
+      ctx.drawImage(sprite, x, y+yOffset, 64, 64)
+      ctx.restore()
+    }
+    if (effect.popup && effect.popup.timer>0){
+      ctx.save()
+      ctx.font='14px "VT323", monospace'
+      ctx.textAlign='center'
+      ctx.fillStyle=effect.popup.mode==='heal' ? '#9bf6c1' : '#ffb347'
+      ctx.globalAlpha = Math.min(1, effect.popup.timer/0.4)
+      const prefix = effect.popup.mode==='heal' ? '+' : '-'
+      ctx.fillText(`${prefix}${effect.popup.value}`, x+32, y - 8 - (effect.popup.rise ?? 0))
+      ctx.restore()
+      ctx.textAlign='left'
+    }
+    if (!battler.alive){
+      const alpha = Math.max(0, effect.koAlpha ?? 0)
+      ctx.save()
+      ctx.globalAlpha = 0.4*alpha
+      ctx.fillStyle='#000'
+      ctx.beginPath()
+      ctx.ellipse(x+32, y+60, 24, 6, 0, 0, Math.PI*2)
+      ctx.fill()
+      ctx.restore()
+    }
+  }
+  ctx.restore()
+}
+
+function drawTargetArrow(ctx:CanvasRenderingContext2D, x:number, y:number){
+  ctx.fillStyle='#ffe382'
+  ctx.beginPath()
+  ctx.moveTo(x, y)
+  ctx.lineTo(x-8, y-12)
+  ctx.lineTo(x+8, y-12)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle='#b78c2a'
+  ctx.stroke()
+}
+
+function nextAliveIndex(units:any[]){
+  for (let i=0;i<units.length;i++){
+    if (units[i]?.alive) return i
+  }
+  return -1
+}
+
+function stripWhiteBackground(img:HTMLImageElement){
+  const canvas = document.createElement('canvas')
+  canvas.width = img.width
+  canvas.height = img.height
+  const g = canvas.getContext('2d')!
+  g.drawImage(img,0,0)
+  const data = g.getImageData(0,0,canvas.width,canvas.height)
+  const buf = data.data
+  for(let i=0;i<buf.length;i+=4){
+    if (buf[i]>245 && buf[i+1]>245 && buf[i+2]>245){
+      buf[i+3]=0
+    }
+  }
+  g.putImageData(data,0,0)
+  return canvas
+}
+
+function decayEffects(effects:Record<string,{hitTimer:number; koAlpha:number; popup?:{value:number; timer:number; mode:string; rise:number}}>, heroes:any[], enemies:any[]){
+  const all = [...heroes, ...enemies]
+  for (const unit of all){
+    const id = unit.id
+    if (!id) continue
+    const entry = effects[id] ?? (effects[id]={ hitTimer:0, koAlpha: unit.alive?1:0 })
+    entry.hitTimer = Math.max(0, entry.hitTimer - 1/30)
+    if (!unit.alive){
+      entry.koAlpha = Math.max(0, (entry.koAlpha ??1) - 0.02)
+    } else {
+      entry.koAlpha = 1
+    }
+    if (entry.popup){
+      entry.popup.timer = Math.max(0, entry.popup.timer - 1/30)
+      entry.popup.rise = (entry.popup.rise ?? 0) + 0.5
+      if (entry.popup.timer<=0){
+        delete entry.popup
+      }
+    }
+  }
+}
+
+function drawCommandPanel(ctx:CanvasRenderingContext2D, panel:Frame, state:any){
+  drawHudPanel(ctx, panel)
+  const mode = state.commandMode ?? 'primary'
+  const commands = state.commands ?? []
+  const primaryMenu = ['Attack','Skills','Spells','Items']
+  ctx.fillStyle='#f5f5ff'
+  ctx.font='16px "VT323", monospace'
+  if (mode==='primary'){
+    ctx.fillText('Actions', panel.x+14, panel.y+18)
+    ctx.font='13px "VT323", monospace'
+    primaryMenu.forEach((label, idx)=>{
+      const y = panel.y + 42 + idx*22
+      const active = idx===state.cursor?.menuIdx
+      ctx.fillStyle = active ? '#ffe082' : '#dfe3ff'
+      renderClampedText(ctx, label, panel.x+14, y, panel.w-28)
+    })
+    ctx.font='11px "VT323", monospace'
+    ctx.fillStyle='rgba(255,255,255,0.6)'
+    ctx.fillText('↑/↓ choose   → / Enter confirm', panel.x+14, panel.y + panel.h - 12)
+    return
+  }
+
+  const title = mode==='items' ? 'Items' : mode==='skills' ? 'Skills' : 'Spells'
+  ctx.fillText(title, panel.x+14, panel.y+18)
+  ctx.fillStyle='rgba(255,255,255,0.6)'
+  ctx.font='10px "VT323", monospace'
+  ctx.fillText('← Back', panel.x + panel.w - 54, panel.y+18)
+
+  const startY = panel.y + 38
+  ctx.font='13px "VT323", monospace'
+  commands.forEach((entry:any, idx:number)=>{
+    const y = startY + idx*20
+    if (y > panel.y + panel.h - 32) return
+    const active = idx===state.cursor?.menuIdx
+    const disabled = entry.disabled
+    ctx.fillStyle = disabled ? 'rgba(255,255,255,0.35)' : (active ? '#ffe082' : '#fefefe')
+    const label = entry.type==='item'
+      ? `${entry.label} ×${entry.qty ?? 0}`
+      : entry.label
+    renderClampedText(ctx, label, panel.x+14, y, panel.w-90)
+    if (entry.cost){
+      const storedAlign = ctx.textAlign
+      ctx.textAlign='right'
+      ctx.fillStyle = disabled ? 'rgba(255,255,255,0.3)' : '#a7d7ff'
+      ctx.fillText(`${entry.cost} MP`, panel.x + panel.w - 16, y)
+      ctx.textAlign = storedAlign
+    }
+  })
+  if (!commands.length){
+    ctx.fillStyle='rgba(255,255,255,0.6)'
+    ctx.fillText(mode==='items' ? 'No usable items' : 'No abilities available', panel.x+14, startY)
+  }
+  const active = commands[state.cursor?.menuIdx ?? -1]
+  if (active?.detail){
+    ctx.font='11px "VT323", monospace'
+    ctx.fillStyle='#cfd5ff'
+    renderClampedText(ctx, active.detail, panel.x+14, panel.y + panel.h - 18, panel.w-24)
+  }
+}
+
+function drawTargetPanel(ctx:CanvasRenderingContext2D, panel:Frame, state:any, phase:string){
+  drawHudPanel(ctx, panel)
+  const selecting = phase==='TARGET_SELECT'
+  const team = selecting ? (state.cursor?.targetTeam ?? 'enemies') : 'enemies'
+  const list = team==='heroes' ? state.heroes : state.enemies
+  ctx.fillStyle='#f5f5ff'
+  ctx.font='16px "VT323", monospace'
+  ctx.fillText(team==='heroes' ? 'Allies' : 'Enemy', panel.x+14, panel.y+18)
+  const showArrow = selecting
+  const selected = showArrow
+    ? (typeof state.cursor?.targetIdx==='number' && state.cursor.targetIdx>=0 ? state.cursor.targetIdx : nextAliveIndex(list))
+    : -1
+  ctx.font='12px "VT323", monospace'
+  const rowH=20
+  list.forEach((unit:any, idx:number)=>{
+    const y = panel.y + 40 + idx*rowH
+    if (y+rowH>panel.y+panel.h) return
+    const arrow = showArrow && idx===selected ? '▶ ' : '  '
+    ctx.fillStyle = showArrow && idx===selected ? '#ffe082' : '#dfe3ff'
+    const mpInfo = team==='heroes' ? ` | MP ${Math.max(0,unit.mp ?? 0)}/${unit.maxMp ?? unit.mp ?? 0}` : ''
+    const info = `${unit.name}  HP ${Math.max(0,unit.hp)}/${unit.maxHp ?? unit.hp}${mpInfo}`
+    renderClampedText(ctx, arrow + info, panel.x+12, y, panel.w-24)
+  })
+}
+
+function drawPartyPanel(ctx:CanvasRenderingContext2D, panel:Frame, heroes:any[]){
+  drawHudPanel(ctx, panel)
+  ctx.fillStyle='#f5f5ff'
+  ctx.font='16px "VT323", monospace'
+  ctx.fillText('Party', panel.x+14, panel.y+18)
+  const rowHeight = 32
+  ctx.font='12px "VT323", monospace'
+  const maxRows = Math.floor((panel.h - 38) / rowHeight)
+  const gaugeW = Math.max(48, panel.w - 140)
+  heroes.slice(0, maxRows).forEach((hero:any, idx:number)=>{
+    const baseY = panel.y + 38 + idx*rowHeight
+    ctx.fillStyle= hero.alive ? '#fefefe' : '#9da0b7'
+    renderClampedText(ctx, hero.name, panel.x+14, baseY, panel.w - 150)
+    ctx.fillStyle='#dfe3ff'
+    ctx.fillText(`Lv ${hero.level}`, panel.x+14, baseY+12)
+    const maxMp = hero.maxMp ?? hero.mp ?? 0
+    const mpVal = Math.max(0, hero.mp ?? 0)
+    const gaugeX = panel.x + panel.w - gaugeW - 16
+    const hpPct = hero.maxHp ? hero.hp/hero.maxHp : 0
+    drawGauge(ctx, gaugeX, baseY-6, gaugeW, 6, hpPct, '#ffd24c')
+    const mpPct = maxMp ? mpVal / maxMp : 0
+    drawGauge(ctx, gaugeX, baseY+4, gaugeW, 5, Math.max(0, Math.min(1, mpPct)), '#9cc4ff')
+    ctx.fillStyle='#ffe082'
+    ctx.fillText(`${Math.max(0,hero.hp)}/${hero.maxHp}`, gaugeX, baseY+16)
+    ctx.fillStyle='#a7d7ff'
+    ctx.fillText(`MP ${mpVal}/${maxMp}`, gaugeX, baseY+26)
+  })
+}
+
+function drawGauge(ctx:CanvasRenderingContext2D, x:number, y:number, w:number, h:number, pct:number, color:string){
+  ctx.fillStyle='rgba(0,0,0,0.4)'
+  ctx.fillRect(x, y, w, h)
+  const width = Math.max(0, Math.min(1, pct))
+  ctx.fillStyle=color
+  ctx.fillRect(x, y, Math.round(w*width), h)
+  ctx.strokeStyle='rgba(255,255,255,0.25)'
+  ctx.strokeRect(x, y, w, h)
+}
+
+function drawHudPanel(ctx:CanvasRenderingContext2D, panel:Frame){
+  ctx.fillStyle='#181438'
+  ctx.fillRect(panel.x, panel.y, panel.w, panel.h)
+  ctx.strokeStyle='#7a6bff'
+  ctx.lineWidth=2
+  ctx.strokeRect(panel.x, panel.y, panel.w, panel.h)
+  ctx.strokeStyle='rgba(8,7,19,0.9)'
+  ctx.lineWidth=1
+  ctx.strokeRect(panel.x+3, panel.y+3, panel.w-6, panel.h-6)
+}
+
+function renderClampedText(ctx:CanvasRenderingContext2D, text:string, x:number, y:number, maxWidth:number){
+  const metrics = ctx.measureText(text)
+  if (metrics.width <= maxWidth){ ctx.fillText(text, x, y) }
+  else {
+    let str = text
+    while (ctx.measureText(str + '…').width > maxWidth && str.length>0){
+      str = str.slice(0, -1)
+    }
+    ctx.fillText(str + '…', x, y)
+  }
+}
+
+function renderCenteredClampedText(ctx:CanvasRenderingContext2D, text:string, centerX:number, y:number, maxWidth:number){
+  if (ctx.measureText(text).width <= maxWidth){
+    ctx.fillText(text, centerX, y)
+    return
+  }
+  let str = text
+  while (ctx.measureText(str + '…').width > maxWidth && str.length>0){
+    str = str.slice(0,-1)
+  }
+  ctx.fillText(str + '…', centerX, y)
+}
+
+function drawArrow(ctx:CanvasRenderingContext2D, x:number, y:number){
+  ctx.fillStyle='rgba(255,255,255,0.8)'
+  ctx.beginPath()
+  ctx.moveTo(x, y)
+  ctx.lineTo(x+8, y+6)
+  ctx.lineTo(x, y+12)
+  ctx.closePath()
+  ctx.fill()
+  ctx.strokeStyle='rgba(255,255,255,0.3)'
+  ctx.stroke()
+}
+
+function drawIconButton(ctx:CanvasRenderingContext2D, centerX:number, centerY:number, type:'fast'|'pause'|'auto'){
+  ctx.save()
+  ctx.translate(centerX, centerY)
+  ctx.fillStyle='rgba(53,69,173,0.95)'
+  ctx.strokeStyle='#c2ceff'
+  ctx.lineWidth=1
+  const size = 16
+  ctx.beginPath()
+  const rr = (ctx as any).roundRect
+  if (typeof rr === 'function'){
+    rr.call(ctx, -size/2, -size/2, size, size, 3)
+  } else {
+    ctx.rect(-size/2, -size/2, size, size)
+  }
+  ctx.fill()
+  ctx.stroke()
+  ctx.fillStyle='#fff'
+  if (type==='fast'){
+    ctx.beginPath()
+    ctx.moveTo(-4, -4); ctx.lineTo(1, 0); ctx.lineTo(-4, 4); ctx.closePath(); ctx.fill()
+    ctx.beginPath()
+    ctx.moveTo(2, -4); ctx.lineTo(7, 0); ctx.lineTo(2, 4); ctx.closePath(); ctx.fill()
+  } else if (type==='pause'){
+    ctx.fillRect(-4, -4, 3, 8)
+    ctx.fillRect(1, -4, 3, 8)
+  } else {
+    ctx.beginPath()
+    ctx.arc(0, 0, 4, -Math.PI/2, Math.PI/2)
+    ctx.lineTo(6,0)
+    ctx.closePath()
+    ctx.fill()
+  }
+  ctx.restore()
+}
+
+function drawTopBanner(ctx:CanvasRenderingContext2D, inner:Frame, phase:string, log:string[], prompt?:string){
+  const padding = 20
+  const width = Math.max(140, inner.w - padding*2)
+  const bannerHeight = 22
+  const x = inner.x + (inner.w - width)/2
+  const y = inner.y
+  const gradient = ctx.createLinearGradient(x, y, x, y+bannerHeight)
+  gradient.addColorStop(0, '#546bcf')
+  gradient.addColorStop(1, '#29347b')
+  ctx.fillStyle = gradient
+  ctx.fillRect(x, y, width, bannerHeight)
+  ctx.strokeStyle='#9fb3ff'
+  ctx.lineWidth=1.5
+  ctx.strokeRect(x, y, width, bannerHeight)
+  drawIconButton(ctx, x - 24, y + bannerHeight/2, 'fast')
+  drawIconButton(ctx, x - 6, y + bannerHeight/2, 'pause')
+  drawIconButton(ctx, x + width + 18, y + bannerHeight/2, 'auto')
+  ctx.fillStyle='#fff'
+  ctx.font='12px "VT323", monospace'
+  ctx.textAlign='center'
+  const headline = prompt || log[log.length-1] || `Phase: ${phase}`
+  renderCenteredClampedText(ctx, headline, x + width/2, y + bannerHeight/2 + 4, width-28)
+  ctx.textAlign='left'
+}
+
+function drawSummary(ctx:CanvasRenderingContext2D, frame:Frame, state:any){
+  const pad = 16
+  const bw = frame.w - pad*2
+  const bh = Math.min(frame.h - pad*2, 130)
+  const bx = frame.x + pad
+  const by = frame.y + (frame.h - bh)/2
+  ctx.fillStyle='rgba(5,5,15,0.94)'
+  ctx.fillRect(bx, by, bw, bh)
+  ctx.strokeStyle='#d6c2ff'
+  ctx.strokeRect(bx, by, bw, bh)
+  ctx.fillStyle='#fff'
+  ctx.font='18px "VT323", monospace'
+  ctx.fillText('Battle Results', bx+16, by+28)
+  ctx.font='14px "VT323", monospace'
+  ctx.fillText(`XP Earned: ${state.reward?.xp ?? 0}`, bx+16, by+54)
+  ctx.fillText(`Gold: ${state.reward?.gold ?? 0}`, bx+16, by+72)
+  ctx.fillText('Press Enter to continue', bx+16, by+bh-18)
+}

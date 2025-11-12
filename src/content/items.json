@@ -1,4 +1,18 @@
 [
-  {"id":"potion","name":"Potion","type":"consumable","effect":"heal","power":20,"price":10},
-  {"id":"antidote","name":"Antidote","type":"consumable","effect":"cure_poison","price":8}
+  {
+    "id": "potion",
+    "name": "Potion",
+    "description": "Restores 20 HP to one ally.",
+    "kind": "heal",
+    "target": "ally",
+    "amount": 20
+  },
+  {
+    "id": "mist-bomb",
+    "name": "Mist Bomb",
+    "description": "Explodes in silvery flame for 18 damage to one enemy.",
+    "kind": "damage",
+    "target": "enemy",
+    "amount": 18
+  }
 ]

@@ -13,12 +13,16 @@ export function makeEncounter(): CombatState {
     heroes:[],
     enemies:es,
     log:['Enemies emerge from the Mist...'],
-    cursor:{heroIdx:0,menuIdx:0,targetIdx:0,sub:'actions'},
+    cursor:{heroIdx:0,menuIdx:0,targetIdx:0,sub:'actions',targetTeam:'enemies'},
     reward:{xp: rewardXp, gold: rewardGold},
     enemyXp,
     killXp:{},
     effects: {},
     introFrames:60,
-    victoryFrames:120
+    victoryFrames:120,
+    prompt:undefined,
+    commandMode:'primary',
+    commands:[],
+    items:[]
   }
 }
