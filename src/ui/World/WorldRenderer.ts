@@ -3,6 +3,21 @@ import { WorldUIState } from '@systems/World/UIState'
 import { drawMinimap } from '@ui/HUD/Minimap'
 import { drawBox } from '@ui/HUD/OverlayBoxes'
 import { drawNPCBubble } from '@ui/World/NPC'
+import playerWorldSprite from '../../assets/world/player-worldmap.png'
+
+const PLAYER_COLS = 9
+const PLAYER_ROWS = 4
+const WALK_FRAMES = [1,2,3,4,5,6,7,8]
+const WALK_FRAME_DURATION = 0.09
+const facingRowMap:{[key in 'up'|'down'|'left'|'right']:number} = {
+  up:0,
+  left:1,
+  down:2,
+  right:3
+}
+
+const playerImage = new Image()
+playerImage.src = playerWorldSprite
 
 export function renderWorld(ctx:CanvasRenderingContext2D, W:number, H:number, world:WorldState, ui:WorldUIState){
   drawTilemap(ctx,W,H,world)
@@ -116,8 +131,36 @@ function drawTilemap(ctx:CanvasRenderingContext2D, W:number, H:number, world:Wor
 }
 
 function drawPlayer(ctx:CanvasRenderingContext2D, world:WorldState){
-  const x=world.playerPx.x, y=world.playerPx.y
-  ctx.fillStyle='#FFD700'; ctx.fillRect(x+2,y+4,12,12)
+  if (!playerImage.complete || playerImage.naturalWidth===0){
+    const x=world.playerPx.x, y=world.playerPx.y
+    ctx.fillStyle='#FFD700'; ctx.fillRect(x+2,y+4,12,12)
+    return
+  }
+  const frameW = playerImage.naturalWidth / PLAYER_COLS
+  const frameH = playerImage.naturalHeight / PLAYER_ROWS
+  const facingRow = facingRowMap[world.playerFacing] ?? facingRowMap.down
+  const walkIndex = world.playerMoving
+    ? WALK_FRAMES[Math.floor((world.playerAnimTime / WALK_FRAME_DURATION)) % WALK_FRAMES.length]
+    : 0
+  const sx = walkIndex * frameW
+  const sy = facingRow * frameH
+  const targetSize = 32
+  const scale = targetSize / Math.max(frameW, frameH)
+  const destW = Math.round(frameW * scale)
+  const destH = Math.round(frameH * scale)
+  const destX = world.playerPx.x + (16 - destW)/2
+  const destY = world.playerPx.y + 16 - destH
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+  ctx.drawImage(
+    playerImage,
+    sx, sy, frameW, frameH,
+    Math.round(destX),
+    Math.round(destY),
+    destW,
+    destH
+  )
+  ctx.restore()
 }
 
 function drawForestBorder(ctx:CanvasRenderingContext2D, x:number, y:number, mask:number){

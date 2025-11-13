@@ -162,22 +162,31 @@ export default function App(){
   useEffect(()=>{
     const audio = audioRef.current
     if (!audio) return
+    const removeUnlockHandler = ()=>{
+      if (unlockHandlerRef.current){
+        window.removeEventListener('pointerdown', unlockHandlerRef.current)
+        unlockHandlerRef.current = null
+      }
+    }
     const shouldPlay = screen==='menu' && !musicMuted
     if (shouldPlay){
-      const promise = audio.play()
-      if (promise){
-        promise.catch(()=>{
-          if (unlockHandlerRef.current) return
+      const tryPlay = ()=>{
+        const promise = audio.play()
+        promise?.catch(()=>{
+          removeUnlockHandler()
           const handle = ()=>{
-            audio.play().catch(()=>{})
-            window.removeEventListener('pointerdown', handle)
-            unlockHandlerRef.current = null
+            removeUnlockHandler()
+            if (screen==='menu' && !musicMuted){
+              audio.play().catch(()=>{})
+            }
           }
           unlockHandlerRef.current = handle
           window.addEventListener('pointerdown', handle, { once:true })
         })
       }
+      tryPlay()
     } else {
+      removeUnlockHandler()
       if (!audio.paused){
         audio.pause()
       }
@@ -186,6 +195,7 @@ export default function App(){
       }
     }
     prevScreenRef.current = screen
+    return removeUnlockHandler
   },[screen, musicMuted])
 
   const handleMenuSelect = (opt:MenuOption)=>{

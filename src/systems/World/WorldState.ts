@@ -21,6 +21,9 @@ export class WorldState {
   riverBanks:number[][]
   encounterModifier = 1
   private biomeCache = new Map<BiomeId, BiomeConfig>()
+  playerFacing:'up'|'down'|'left'|'right' = 'down'
+  playerMoving = false
+  playerAnimTime = 0
 
   constructor(w:number,h:number, options:WorldStateOptions = {}){
     this.width=w; this.height=h

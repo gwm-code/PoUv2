@@ -6,6 +6,8 @@ import { PartyPanel } from '@ui/Party/PartyOverlay'
 import { CharacterEquipmentPanel } from '@ui/CharacterEquipmentOverlay'
 import frameTexture from '../../assets/frame.png'
 
+const baseTextColor = 'var(--mh-gold, #cba76b)'
+
 export type GameMenuTab = 'inventory'|'party'|'equipment'
 
 interface GameMenuOverlayProps {
@@ -28,7 +30,7 @@ const overlayRoot:React.CSSProperties = {
   display:'flex',
   justifyContent:'center',
   alignItems:'center',
-  color:'#fff',
+  color:baseTextColor,
   fontFamily:'VT323, monospace',
   zIndex:40
 }
@@ -46,7 +48,7 @@ const shell:React.CSSProperties = {
   display:'flex',
   flexDirection:'column',
   boxShadow:'0 0 35px rgba(0,0,0,0.8)',
-  color:'#cba76b'
+  color:baseTextColor
 }
 
 const tabBar:React.CSSProperties = {
@@ -60,7 +62,7 @@ const tabBar:React.CSSProperties = {
 const tabButton = (active:boolean):React.CSSProperties=>({
   background: active ? 'rgba(203,167,107,0.12)' : 'transparent',
   border: active ? '2px solid #cba76b' : '1px solid rgba(203,167,107,0.4)',
-  color:'#cba76b',
+  color:baseTextColor,
   padding:'6px 18px',
   fontSize:16,
   cursor:'pointer',
@@ -98,7 +100,7 @@ export function GameMenuOverlay({
           ))}
           <button
             onClick={onClose}
-            style={{ marginLeft:'auto', background:'transparent', border:'none', color:'#cba76b', fontSize:24, cursor:'pointer', fontFamily:'inherit', textShadow:'0 0 6px rgba(0,0,0,0.7)' }}
+            style={{ marginLeft:'auto', background:'transparent', border:'none', color:baseTextColor, fontSize:24, cursor:'pointer', fontFamily:'inherit', textShadow:'0 0 6px rgba(0,0,0,0.7)' }}
           >
             ×
           </button>

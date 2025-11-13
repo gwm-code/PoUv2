@@ -5,6 +5,8 @@ import { Inventory } from '@systems/Inventory/Inventory'
 import { getItemById } from '@systems/Combat/ItemData'
 import { computeHeroStats } from '@systems/Party/HeroStats'
 
+const baseTextColor = 'var(--mh-gold, #cba76b)'
+
 interface InventoryEntry {
   id:string
   qty:number
@@ -150,7 +152,7 @@ const panelShell:React.CSSProperties = {
   gap:24,
   width:'100%',
   height:'100%',
-  color:'#fff',
+  color:baseTextColor,
   fontFamily:'VT323, monospace',
   padding:'4px 2px'
 }
@@ -226,7 +228,7 @@ const heroButton:React.CSSProperties = {
   padding:'6px 0',
   border:'1px solid #9b8bff',
   background:'#4e447b',
-  color:'#fff',
+  color:baseTextColor,
   cursor:'pointer',
   fontFamily:'inherit'
 }

@@ -4,6 +4,7 @@
 - Wired a dedicated start-menu theme (`Into the Mistheart.mp3`) that lives at the app level, loops softly while the title screen is visible, and pauses/resets automatically when launching the game or muting the track.
 - Added a gold-accented speaker toggle to the start menu; the mute state persists via `localStorage` so returning to the menu keeps the player’s preference, and the same state now governs whether audio auto-plays after fullscreen prompts.
 - Ensured fullscreen/resolution settings remain in sync between the start menu and in-game pause overlays, preventing duplicate fullscreen requests and keeping the UI workflow unified.
+- Replaced the overworld movement box with the new world-map hero sprite sheet (idle + walking frames for all four facings) and taught `WorldController` to track facing/movement so the sprite animates only while traveling.
 
 ## 2025-11-13
 - Added the dark Mist encounter transition: overworld snapshots are frozen, wisps curl inward, and the screen seals before combat loads to reinforce the lore beat that the Mist consumes everything.

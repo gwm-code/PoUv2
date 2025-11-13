@@ -32,6 +32,20 @@ export class WorldController {
     if (Input.isHeld('down')) vy=+1
     if (Input.isHeld('left')) vx=-1
     if (Input.isHeld('right')) vx=+1
+    const moving = vx!==0 || vy!==0
+    if (moving){
+      if (Math.abs(vy) >= Math.abs(vx) && vy!==0){
+        this.world.playerFacing = vy<0 ? 'up' : 'down'
+      } else if (vx!==0){
+        this.world.playerFacing = vx<0 ? 'left' : 'right'
+      }
+    }
+    this.world.playerMoving = moving
+    if (moving){
+      this.world.playerAnimTime += dt
+    } else {
+      this.world.playerAnimTime = 0
+    }
     const speed = this.world.speed
     const nx = this.world.playerPx.x + vx*speed*dt
     const ny = this.world.playerPx.y + vy*speed*dt

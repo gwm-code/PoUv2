@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import { useBattleHudState, RectFraction, UnitDisplay, CommandEntry } from './hudState'
 
+const baseTextColor = 'var(--mh-gold, #cba76b)'
+
 const overlayRoot:React.CSSProperties = {
   position:'absolute',
   inset:0,
   pointerEvents:'none',
   fontFamily:'VT323, monospace',
-  color:'#fff'
+  color:baseTextColor
 }
 
 const panelBase:React.CSSProperties = {

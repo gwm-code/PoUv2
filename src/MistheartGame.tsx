@@ -19,6 +19,7 @@ import { GameMenuOverlay, type GameMenuTab } from '@ui/Menu/GameMenuOverlay'
 import frameTexture from './assets/frame.png'
 
 const SAVE_KEY = 'mistheart_autosave'
+const baseTextColor = 'var(--mh-gold, #cba76b)'
 
 type Overlay = 'menu'|'settings'|'load'|null
 export type ResolutionScale = 'fit'|'fill'|1|2|3|4
@@ -60,9 +61,9 @@ interface PauseMenuProps {
 
 function PauseMenu({ onResume, onSettings, onLoad, onQuit }:PauseMenuProps){
   return (
-    <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', background:'rgba(5,4,12,0.65)', display:'flex', justifyContent:'center', alignItems:'center', color:'#fff', fontFamily:'VT323, monospace' }}>
-      <div style={{ background:'rgba(8,6,12,0.4)', borderStyle:'solid', borderWidth:96, borderImageSource:`url(${frameTexture})`, borderImageSlice:'256 fill', borderImageRepeat:'stretch', padding:24, minWidth:240, color:'#cba76b', boxShadow:'0 0 25px rgba(0,0,0,0.8)' }}>
-        <h2 style={{ marginTop:0, textAlign:'center', color:'#cba76b', textShadow:'0 0 6px rgba(0,0,0,0.7)' }}>Paused</h2>
+    <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', background:'rgba(5,4,12,0.65)', display:'flex', justifyContent:'center', alignItems:'center', color:baseTextColor, fontFamily:'VT323, monospace' }}>
+      <div style={{ background:'rgba(8,6,12,0.4)', borderStyle:'solid', borderWidth:96, borderImageSource:`url(${frameTexture})`, borderImageSlice:'256 fill', borderImageRepeat:'stretch', padding:24, minWidth:240, color:baseTextColor, boxShadow:'0 0 25px rgba(0,0,0,0.8)' }}>
+        <h2 style={{ marginTop:0, textAlign:'center', color:baseTextColor, textShadow:'0 0 6px rgba(0,0,0,0.7)' }}>Paused</h2>
         <button style={pauseBtn} onClick={onResume}>Resume</button>
         <button style={pauseBtn} onClick={onSettings}>Settings</button>
         <button style={pauseBtn} onClick={onLoad}>Load</button>
@@ -90,7 +91,7 @@ const pauseBtn:React.CSSProperties = {
 
 interface OverlayShellProps { title:string; children:React.ReactNode; onClose:()=>void }
 
-const overlayContainer:React.CSSProperties = { position:'absolute', top:0, left:0, width:'100%', height:'100%', background:'rgba(5,4,12,0.65)', display:'flex', justifyContent:'center', alignItems:'center', color:'#fff', fontFamily:'VT323, monospace', zIndex:5 }
+const overlayContainer:React.CSSProperties = { position:'absolute', top:0, left:0, width:'100%', height:'100%', background:'rgba(5,4,12,0.65)', display:'flex', justifyContent:'center', alignItems:'center', color:baseTextColor, fontFamily:'VT323, monospace', zIndex:5 }
 const framedPanel:React.CSSProperties = {
   background:'rgba(8,6,12,0.45)',
   borderStyle:'solid',
@@ -108,8 +109,8 @@ function OverlayShell({ title, children, onClose }:OverlayShellProps){
     <div style={overlayContainer}>
       <div style={{ ...framedPanel, minWidth:280, maxWidth:420 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-          <h2 style={{ margin:0, color:'#cba76b', textShadow:'0 0 6px rgba(0,0,0,0.7)' }}>{title}</h2>
-          <button onClick={onClose} style={{ background:'transparent', border:'none', color:'#cba76b', fontSize:20, cursor:'pointer', textShadow:'0 0 6px rgba(0,0,0,0.7)' }}>×</button>
+          <h2 style={{ margin:0, color:baseTextColor, textShadow:'0 0 6px rgba(0,0,0,0.7)' }}>{title}</h2>
+          <button onClick={onClose} style={{ background:'transparent', border:'none', color:baseTextColor, fontSize:20, cursor:'pointer', textShadow:'0 0 6px rgba(0,0,0,0.7)' }}>×</button>
         </div>
         {children}
       </div>
@@ -170,7 +171,7 @@ export function SettingsOverlay({ settings, onChange, onClose }:{ settings:GameS
                   padding:'6px 8px',
                   border:'1px solid #7a6bff',
                   background: active ? '#332a63' : '#1a1530',
-                  color:'#fff',
+                  color:baseTextColor,
                   cursor:'pointer'
                 }}
               >
@@ -187,13 +188,13 @@ export function SettingsOverlay({ settings, onChange, onClose }:{ settings:GameS
         <div style={{ display:'flex', gap:8, marginTop:6 }}>
           <button
             onClick={()=>update({ worldSpeed:1 })}
-            style={{ flex:1, padding:'6px 8px', border:'1px solid #7a6bff', background:settings.worldSpeed===1?'#332a63':'#1a1530', color:'#fff', cursor:'pointer' }}
+            style={{ flex:1, padding:'6px 8px', border:'1px solid #7a6bff', background:settings.worldSpeed===1?'#332a63':'#1a1530', color:baseTextColor, cursor:'pointer' }}
           >
             Normal
           </button>
           <button
             onClick={()=>update({ worldSpeed:1.5 })}
-            style={{ flex:1, padding:'6px 8px', border:'1px solid #7a6bff', background:settings.worldSpeed>1?'#332a63':'#1a1530', color:'#fff', cursor:'pointer' }}
+            style={{ flex:1, padding:'6px 8px', border:'1px solid #7a6bff', background:settings.worldSpeed>1?'#332a63':'#1a1530', color:baseTextColor, cursor:'pointer' }}
           >
             Fast
           </button>
@@ -204,19 +205,19 @@ export function SettingsOverlay({ settings, onChange, onClose }:{ settings:GameS
         <div style={{ display:'flex', gap:8, marginTop:6 }}>
           <button
             onClick={()=>update({ encounterRate:0.7 })}
-            style={{ flex:1, padding:'6px 8px', border:'1px solid #7a6bff', background:settings.encounterRate<1?'#332a63':'#1a1530', color:'#fff', cursor:'pointer' }}
+            style={{ flex:1, padding:'6px 8px', border:'1px solid #7a6bff', background:settings.encounterRate<1?'#332a63':'#1a1530', color:baseTextColor, cursor:'pointer' }}
           >
             Calm
           </button>
           <button
             onClick={()=>update({ encounterRate:1 })}
-            style={{ flex:1, padding:'6px 8px', border:'1px solid #7a6bff', background:settings.encounterRate===1?'#332a63':'#1a1530', color:'#fff', cursor:'pointer' }}
+            style={{ flex:1, padding:'6px 8px', border:'1px solid #7a6bff', background:settings.encounterRate===1?'#332a63':'#1a1530', color:baseTextColor, cursor:'pointer' }}
           >
             Normal
           </button>
           <button
             onClick={()=>update({ encounterRate:1.4 })}
-            style={{ flex:1, padding:'6px 8px', border:'1px solid #7a6bff', background:settings.encounterRate>1?'#332a63':'#1a1530', color:'#fff', cursor:'pointer' }}
+            style={{ flex:1, padding:'6px 8px', border:'1px solid #7a6bff', background:settings.encounterRate>1?'#332a63':'#1a1530', color:baseTextColor, cursor:'pointer' }}
           >
             Frenzied
           </button>
@@ -237,7 +238,7 @@ export function SettingsOverlay({ settings, onChange, onClose }:{ settings:GameS
                   padding:'6px 8px',
                   border:'1px solid #7a6bff',
                   background: active ? '#332a63' : '#1a1530',
-                  color:'#fff',
+                  color:baseTextColor,
                   cursor:'pointer'
                 }}
               >
@@ -281,7 +282,7 @@ function LoadOverlay({ save, disabled, onLoad, onClose }:{ save:GameSave|null; d
           <button
             onClick={()=>onLoad(save)}
             disabled={disabled}
-            style={{ width:'100%', padding:'10px 0', border:'1px solid #7a6bff', background:disabled?'#2a244a':'#3a2f6b', color:'#fff', cursor:disabled?'not-allowed':'pointer', marginTop:12 }}
+            style={{ width:'100%', padding:'10px 0', border:'1px solid #7a6bff', background:disabled?'#2a244a':'#3a2f6b', color:baseTextColor, cursor:disabled?'not-allowed':'pointer', marginTop:12 }}
           >
             {disabled ? 'Cannot Load During Battle' : 'Load Save'}
           </button>

@@ -5,7 +5,7 @@
   overflow: hidden;
   background: #05030b;
   font-family: 'VT323', monospace;
-  color: #fff;
+  color: var(--mh-gold, #cba76b);
 }
 
 .start-menu-bg {

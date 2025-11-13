@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react'
 import type { Hero } from '@systems/Party/Types'
 import { computeHeroStats } from '@systems/Party/HeroStats'
 
+const baseTextColor = 'var(--mh-gold, #cba76b)'
+
 const portraitImports = import.meta.glob('../../assets/portraits/*.png', { eager: true, import: 'default' }) as Record<string, string>
 
 function getPortraitFor(heroId:string):string|undefined {
@@ -12,7 +14,7 @@ function getPortraitFor(heroId:string):string|undefined {
 const overlayRoot:React.CSSProperties = { position:'absolute', top:0, left:0, width:'100%', height:'100%', background:'rgba(5,4,12,0.78)', display:'flex', justifyContent:'center', alignItems:'center' }
 
 const panelStyle:React.CSSProperties = {
-  color:'#fff',
+  color:baseTextColor,
   fontFamily:'VT323, monospace',
   width:'100%',
   height:'100%',
@@ -139,7 +141,7 @@ export function PartyPanel({ heroes, maxActive, minActive, onUpdated }:PartyPane
             : <span style={{ color:'#6f67a1', fontSize:14 }}>Empty</span>}
         </div>
         <div>
-          <div style={{ fontSize:16, color:'#fff' }}>{hero ? hero.name : '- Empty -'}</div>
+          <div style={{ fontSize:16, color:baseTextColor }}>{hero ? hero.name : '- Empty -'}</div>
           <div style={{ fontSize:13, color:'#cfd2ff' }}>{hero ? hero.class : 'Slot available'}</div>
         </div>
       </div>
@@ -214,7 +216,7 @@ export function PartyPanel({ heroes, maxActive, minActive, onUpdated }:PartyPane
                 )}
                 <button
                   onClick={()=>toggleHero(currentHero)}
-                  style={{ marginTop:16, width:'100%', padding:'8px 0', background:'#4e447b', border:'1px solid #9b8bff', color:'#fff', cursor:'pointer' }}
+                  style={{ marginTop:16, width:'100%', padding:'8px 0', background:'#4e447b', border:'1px solid #9b8bff', color:baseTextColor, cursor:'pointer' }}
                 >
                   {message}
                 </button>
@@ -234,7 +236,7 @@ export function PartyOverlay({ onClose, ...rest }:PartyOverlayProps){
       <PartyPanel {...rest} />
       <button
         onClick={onClose}
-        style={{ position:'absolute', top:24, right:32, background:'transparent', border:'none', color:'#fff', fontSize:28, cursor:'pointer' }}
+        style={{ position:'absolute', top:24, right:32, background:'transparent', border:'none', color:baseTextColor, fontSize:28, cursor:'pointer' }}
       >
         ×
       </button>

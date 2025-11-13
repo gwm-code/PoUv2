@@ -6,6 +6,8 @@ import { getGearItem } from '@systems/Equipment/GearData'
 import { computeHeroStats } from '@systems/Party/HeroStats'
 import { equipGear, unequipGear } from '@systems/Party/Equipment'
 
+const baseTextColor = 'var(--mh-gold, #cba76b)'
+
 interface CharacterEquipmentOverlayProps {
   heroes:Hero[]
   bag:Bag
@@ -265,7 +267,7 @@ export function CharacterEquipmentPanel({ heroes, bag, onClose, embedded }:Chara
                       }}
                     >
                       <div style={slotLabel}>{slotLabels[entry.slot]}</div>
-                      <div style={{ fontSize:12, color: entry.gear ? '#fff' : 'rgba(255,255,255,0.4)' }}>
+                      <div style={{ fontSize:12, color: entry.gear ? baseTextColor : 'rgba(255,255,255,0.4)' }}>
                         {entry.gear ? entry.gear.name : 'Empty'}
                       </div>
                     </div>
@@ -336,7 +338,7 @@ const overlayRoot:React.CSSProperties = {
   justifyContent:'center',
   alignItems:'center',
   zIndex:20,
-  color:'#fff',
+  color:baseTextColor,
   fontFamily:'VT323, monospace'
 }
 
@@ -345,7 +347,7 @@ const fullPanel:React.CSSProperties = {
   height:'100%',
   display:'flex',
   flexDirection:'column',
-  color:'#fff'
+  color:baseTextColor
 }
 
 const headerRow:React.CSSProperties = {
@@ -378,7 +380,7 @@ const activeTab:React.CSSProperties = {
 const closeButton:React.CSSProperties = {
   background:'transparent',
   border:'none',
-  color:'#fff',
+  color:baseTextColor,
   fontSize:24,
   cursor:'pointer',
   fontFamily:'inherit'

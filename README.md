@@ -91,6 +91,7 @@ Supporting files:
 ## Key Systems
 ### World
 Noise-driven world generator with sector-based biomes, rivers, towns, and dungeon entrances. `WorldState` manages player movement, encounter rolls, minimap, and tile metadata. `WorldController` consumes input and triggers encounters/events; `WorldRenderer` draws tile sprites and overlays.
+- The overworld party marker now uses the dedicated world-map sprite sheet (4 directions, idle + walk cycle) so the squad feels grounded on the map instead of a placeholder box.
 
 ### Combat
 `BattleScene` runs a deterministic state machine:
