@@ -32,13 +32,22 @@ export function heal(s:CombatState, heroIdx:number){
   }
 }
 export function enemyTurn(s:CombatState){
-  const enemy = s.enemies.find(e=>e.alive)
-  const target = s.heroes.find(h=>h.alive)
-  if (!enemy || !target) return
-  const dmg = Math.max(1, enemy.atk-0)
-  target.hp -= dmg; s.log.push(`${enemy.name} hits ${target.name} for ${dmg}`)
-  registerHitEffect(s, target.id, target.hp<=0, dmg, 'damage')
-  if (target.hp<=0){ target.alive=false; s.log.push(`${target.name} falls`) }
+  const attackers = s.enemies.filter(e=>e.alive)
+  if (!attackers.length) return
+  for (const enemy of attackers){
+    const targetIdx = pickRandomAliveHeroIndex(s)
+    if (targetIdx === -1) break
+    const target = s.heroes[targetIdx]
+    const dmg = Math.max(1, enemy.atk)
+    target.hp -= dmg
+    s.log.push(`${enemy.name} hits ${target.name} for ${dmg}`)
+    registerHitEffect(s, target.id, target.hp<=0, dmg, 'damage')
+    if (target.hp<=0){
+      target.alive=false
+      s.log.push(`${target.name} falls`)
+    }
+    if (!s.heroes.some(h=>h.alive)) break
+  }
 }
 
 export function useAbility(state:CombatState, heroIdx:number, targetIdx:number, targetTeam:TargetTeam, abilityId:string){
@@ -137,4 +146,13 @@ function resolveTarget(state:CombatState, team:TargetTeam, targetIdx:number, fal
   }
   const list = team==='heroes' ? state.heroes : state.enemies
   return list[targetIdx] ?? list.find(unit=>unit?.alive)
+}
+
+function pickRandomAliveHeroIndex(state:CombatState){
+  const alive = state.heroes
+    .map((hero, idx)=>hero.alive ? idx : -1)
+    .filter(idx=>idx>=0)
+  if (!alive.length) return -1
+  const choice = Math.floor(Math.random()*alive.length)
+  return alive[choice]
 }

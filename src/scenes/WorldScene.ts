@@ -9,6 +9,11 @@ import { renderWorld } from '@ui/World/WorldRenderer'
 import { type Bag } from '@systems/Inventory/Inventory'
 import { computeHeroStats } from '@systems/Party/HeroStats'
 
+interface TransitionContext {
+  world: WorldState
+  ui: WorldUIState
+}
+
 export class WorldScene implements IScene {
   private controller:WorldController
   private ui:WorldUIState = createWorldUIState()
@@ -18,7 +23,7 @@ export class WorldScene implements IScene {
     private world: WorldState,
     private party: Hero[],
     private bag: Bag,
-    private pushBattle:(s:BattleScene)=>void,
+    private beginBattleTransition:(battle:BattleScene, ctx:TransitionContext)=>void,
     private popBattle:()=>void
   ){
     this.controller = new WorldController(world)
@@ -55,12 +60,13 @@ export class WorldScene implements IScene {
           atb:0
         }
       })
-      this.pushBattle(new BattleScene(this.W,this.H,enc,this.party,this.bag,(xp,gold,ups)=>{
+      const battle = new BattleScene(this.W,this.H,enc,this.party,this.bag,(xp,gold,ups)=>{
         this.ui.equipOpen=false
         this.ui.shopOpen=false
         this.ui.talkText=null
         this.popBattle()
-      }))
+      })
+      this.beginBattleTransition(battle, { world:this.world, ui:this.ui })
     }
     if (typeof result.talkText !== 'undefined'){
       this.ui.talkText = result.talkText

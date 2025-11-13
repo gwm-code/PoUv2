@@ -1,5 +1,24 @@
 # Mistheart Modular Progress Log
 
+## 2025-11-14
+- Wired a dedicated start-menu theme (`Into the Mistheart.mp3`) that lives at the app level, loops softly while the title screen is visible, and pauses/resets automatically when launching the game or muting the track.
+- Added a gold-accented speaker toggle to the start menu; the mute state persists via `localStorage` so returning to the menu keeps the player’s preference, and the same state now governs whether audio auto-plays after fullscreen prompts.
+- Ensured fullscreen/resolution settings remain in sync between the start menu and in-game pause overlays, preventing duplicate fullscreen requests and keeping the UI workflow unified.
+
+## 2025-11-13
+- Added the dark Mist encounter transition: overworld snapshots are frozen, wisps curl inward, and the screen seals before combat loads to reinforce the lore beat that the Mist consumes everything.
+- Built a dedicated `MistTransitionScene` (pulse → tendrils → portal phases) plus skippable input, and rerouted `WorldScene` encounters so battles now flow through the transition stack.
+- Documented the feature in `README.md` so future contributors understand the encounter pacing hook.
+- Debugged the WSL `npm install` failure (esbuild `spawnSync ... EPERM`); workaround is `npm install --ignore-scripts` followed by `node node_modules/esbuild/install.js || true`, then `npm run build` to verify.
+- Fixed a crash in the new transition (non-finite values hitting `createRadialGradient`) by initializing the mist center/radius inside the constructor so the animation runs reliably.
+- Hooked up a simple enemy AI pass: on each `ENEMY_TURN` every surviving foe randomly picks a living hero and swings, establishing the baseline we’ll expand with abilities/logic later.
+- Corrected hero turn cycling so ATB-less encounters actually hand control to the enemy phase after the last acting hero (no wrap-around in `advanceHero`).
+- Added a dedicated “current turn” triangle behind the active hero sprite and mirrored that highlight in the party HUD chips so it’s obvious who the player is commanding at any time.
+- Locked the Mist encounter transition so it always plays to completion (no accidental skips from held movement keys).
+- Added display settings: pause → Settings now includes integer resolution scaling (Fit/1×/2×/3×/4×) and a fullscreen toggle that uses the browser API and persists in saves.
+- Introduced viewport presets (Classic 4:3, Widescreen 16:9, Cinematic 16:9) so we can render more world tiles without pillarboxing; changing the preset rebuilds the scenes with the new dimensions.
+- Rebuilt the in-game menu: `I`/`P`/`C` now open a single tabbed overlay housing the redesigned Inventory panel plus the Party and Equipment tabs, keeping the backdrop consistent while jumping between systems.
+
 ## 2025-11-10
 - Installed project dependencies (Vite/React) and fixed Windows/WSL shim issues.
 - Added biome config + seeded world generator; rewired world UI and minimap to use biome palettes.

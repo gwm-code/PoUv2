@@ -123,6 +123,9 @@ function drawBattlerSprite(ctx:CanvasRenderingContext2D, x:number, y:number, bat
   ctx.save()
   let drawn=false
   const yOffset = battler.alive ? 0 : 32
+  if (highlight && battler.alive && type==='heroes'){
+    drawTurnIndicator(ctx, x, y+yOffset)
+  }
   if (sprite){
     if (sprite instanceof HTMLImageElement){
       if (sprite.complete && sprite.naturalWidth){
@@ -153,6 +156,9 @@ function drawBattlerSprite(ctx:CanvasRenderingContext2D, x:number, y:number, bat
     ctx.fillRect(x, y+yOffset, 40, 40)
     ctx.fillStyle = battler.alive ? '#2e1c34' : '#1f102a'
     ctx.fillRect(x+8, y+yOffset+8, 24, 12)
+  }
+  if (highlight && battler.alive && type==='heroes'){
+    drawTurnIndicator(ctx, x, y+yOffset)
   }
   if (effect){
     if (effect.hitTimer>0 && sprite){
@@ -206,6 +212,29 @@ function nextAliveIndex(units:any[]){
   return -1
 }
 
+function drawTurnIndicator(ctx:CanvasRenderingContext2D, x:number, y:number){
+  const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
+  const pulse = 0.4 + 0.4 * Math.sin(now / 260)
+  ctx.save()
+  const baseX = x + 32
+  const baseY = y + 50
+  ctx.globalAlpha = 0.45 + pulse * 0.35
+  ctx.fillStyle = 'rgba(255,220,120,0.9)'
+  ctx.shadowColor = 'rgba(255,220,150,0.4)'
+  ctx.shadowBlur = 6 + pulse * 4
+  ctx.beginPath()
+  ctx.moveTo(baseX, baseY + 10)
+  ctx.lineTo(baseX - 12, baseY - 10)
+  ctx.lineTo(baseX + 12, baseY - 10)
+  ctx.closePath()
+  ctx.fill()
+  ctx.shadowBlur = 0
+  ctx.lineWidth = 1.5
+  ctx.strokeStyle = '#b57b1f'
+  ctx.stroke()
+  ctx.restore()
+}
+
 function syncHudOverlay(canvas:HTMLCanvasElement, inner:Frame, enemyPanel:Frame, commandPanel:Frame, partyPanel:Frame, state:any){
   const canvasW = canvas.width || 1
   const canvasH = canvas.height || 1
@@ -225,7 +254,8 @@ function syncHudOverlay(canvas:HTMLCanvasElement, inner:Frame, enemyPanel:Frame,
     type:entry.type,
     disabled:entry.disabled
   }))
-  const heroDisplays = (state.heroes ?? []).map((hero:any)=>({
+  const currentHeroIdx = typeof state.cursor?.heroIdx === 'number' ? state.cursor.heroIdx : -1
+  const heroDisplays = (state.heroes ?? []).map((hero:any, idx:number)=>({
     id:hero.id,
     name:hero.name,
     level:hero.level ?? 1,
@@ -234,7 +264,8 @@ function syncHudOverlay(canvas:HTMLCanvasElement, inner:Frame, enemyPanel:Frame,
     mp:hero.mp ?? 0,
     maxMp:hero.maxMp ?? hero.mp ?? 0,
     alive:hero.alive,
-    atb:hero.atb ?? 0
+    atb:hero.atb ?? 0,
+    active: idx === currentHeroIdx
   }))
   const enemyDisplays = (state.enemies ?? []).map((enemy:any)=>({
     id:enemy.id,
@@ -273,7 +304,7 @@ function syncHudOverlay(canvas:HTMLCanvasElement, inner:Frame, enemyPanel:Frame,
       enemies:enemyDisplays
     },
     party:{
-      heroes:heroDisplays
+      heroes:heroDisplays,
     },
     summary: state.phase==='SUMMARY'
       ? { visible:true, xp:state.reward?.xp ?? 0, gold:state.reward?.gold ?? 0 }

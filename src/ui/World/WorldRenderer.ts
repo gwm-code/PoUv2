@@ -7,7 +7,13 @@ import { drawNPCBubble } from '@ui/World/NPC'
 export function renderWorld(ctx:CanvasRenderingContext2D, W:number, H:number, world:WorldState, ui:WorldUIState){
   drawTilemap(ctx,W,H,world)
   drawPlayer(ctx, world)
-  ctx.fillStyle='#fff'; ctx.font='10px "VT323", monospace'; ctx.fillText(world.biomeNameAtPlayer(), 5, H-5)
+  ctx.save()
+  ctx.font='12px "VT323", monospace'
+  ctx.fillStyle='rgba(0,0,0,0.6)'
+  ctx.fillRect(2, H-18, ctx.measureText(world.biomeNameAtPlayer()).width + 8, 16)
+  ctx.fillStyle='#fff'
+  ctx.fillText(world.biomeNameAtPlayer(), 6, H-6)
+  ctx.restore()
   drawMinimap(ctx, W, H, world)
   if (ui.equipOpen){ drawBox(ctx, W/2-60, H/2-40, 120, 80, 'Equip (Esc)') }
   if (ui.shopOpen){ drawBox(ctx, W/2-70, H/2-50, 140, 100, 'Shop (Esc/O)') }

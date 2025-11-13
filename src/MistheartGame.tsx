@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Game } from '@engine/Game'
 import { Input } from '@engine/Input'
 import { WorldState } from '@systems/World/WorldState'
@@ -7,29 +7,39 @@ import { createHeroes } from '@systems/Party/Party'
 import type { Hero } from '@systems/Party/Types'
 import { WorldScene } from '@scenes/WorldScene'
 import { BattleScene } from '@scenes/BattleScene'
-import { Inventory, type Bag } from '@systems/Inventory/Inventory'
-import { getItemById } from '@systems/Combat/ItemData'
-import { computeHeroStats } from '@systems/Party/HeroStats'
+import { MistTransitionScene } from '@scenes/MistTransitionScene'
+import type { Bag } from '@systems/Inventory/Inventory'
 import { useCanvas } from './hooks/useCanvas'
 import { useGameLoop } from './hooks/useGameLoop'
 import { useKeyboardInput } from './hooks/useKeyboardInput'
 import { CharacterEquipmentOverlay } from '@ui/CharacterEquipmentOverlay'
 import { BattleHudOverlay } from '@ui/Battle/BattleHudOverlay'
-import { PartyOverlay } from '@ui/Party/PartyOverlay'
+import { TILE_SIZE, VIEWPORT_PRESETS, resolveViewport, type ViewportPresetKey } from '@config/display'
+import { GameMenuOverlay, type GameMenuTab } from '@ui/Menu/GameMenuOverlay'
+import frameTexture from './assets/frame.png'
 
-const VIEW_W = 384
-const VIEW_H = 256
-const TILE_SIZE = 16
 const SAVE_KEY = 'mistheart_autosave'
 
-type Overlay = 'inventory'|'party'|'character'|'settings'|'load'|null
+type Overlay = 'menu'|'settings'|'load'|null
+export type ResolutionScale = 'fit'|'fill'|1|2|3|4
 
-interface GameSettings {
+export interface GameSettings {
   worldSpeed:number
   encounterRate:number
+  fullscreen:boolean
+  resolutionScale:ResolutionScale
+  viewportPreset:ViewportPresetKey
 }
 
-const defaultSettings:GameSettings = { worldSpeed:1, encounterRate:1 }
+export const defaultSettings:GameSettings = {
+  worldSpeed:1,
+  encounterRate:1,
+  fullscreen:false,
+  resolutionScale:'fit',
+  viewportPreset:'widescreen'
+}
+
+export const resolutionOptions:ResolutionScale[] = ['fit','fill',1,2,3,4]
 
 interface GameSave {
   timestamp:number
@@ -50,9 +60,9 @@ interface PauseMenuProps {
 
 function PauseMenu({ onResume, onSettings, onLoad, onQuit }:PauseMenuProps){
   return (
-    <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', background:'rgba(5,4,12,0.8)', display:'flex', justifyContent:'center', alignItems:'center', color:'#fff', fontFamily:'VT323, monospace' }}>
-      <div style={{ background:'#181438', border:'4px solid #7a6bff', padding:24, minWidth:240 }}>
-        <h2 style={{ marginTop:0, textAlign:'center' }}>Paused</h2>
+    <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', background:'rgba(5,4,12,0.65)', display:'flex', justifyContent:'center', alignItems:'center', color:'#fff', fontFamily:'VT323, monospace' }}>
+      <div style={{ background:'rgba(8,6,12,0.4)', borderStyle:'solid', borderWidth:96, borderImageSource:`url(${frameTexture})`, borderImageSlice:'256 fill', borderImageRepeat:'stretch', padding:24, minWidth:240, color:'#cba76b', boxShadow:'0 0 25px rgba(0,0,0,0.8)' }}>
+        <h2 style={{ marginTop:0, textAlign:'center', color:'#cba76b', textShadow:'0 0 6px rgba(0,0,0,0.7)' }}>Paused</h2>
         <button style={pauseBtn} onClick={onResume}>Resume</button>
         <button style={pauseBtn} onClick={onSettings}>Settings</button>
         <button style={pauseBtn} onClick={onLoad}>Load</button>
@@ -67,24 +77,39 @@ const pauseBtn:React.CSSProperties = {
   width:'100%',
   margin:'10px 0',
   padding:'10px 0',
-  background:'#1f1c3f',
-  border:'2px solid #7a6bff',
-  color:'#fff',
-  fontSize:18,
-  cursor:'pointer'
+  background:'transparent',
+  border:'none',
+  color:'#cba76b',
+  fontSize:20,
+  textTransform:'uppercase',
+  cursor:'pointer',
+  fontFamily:'VT323, monospace',
+  letterSpacing:1,
+  textShadow:'0 0 6px rgba(0,0,0,0.8)'
 }
 
 interface OverlayShellProps { title:string; children:React.ReactNode; onClose:()=>void }
 
-const overlayContainer:React.CSSProperties = { position:'absolute', top:0, left:0, width:'100%', height:'100%', background:'rgba(5,4,12,0.7)', display:'flex', justifyContent:'center', alignItems:'center', color:'#fff', fontFamily:'VT323, monospace' }
+const overlayContainer:React.CSSProperties = { position:'absolute', top:0, left:0, width:'100%', height:'100%', background:'rgba(5,4,12,0.65)', display:'flex', justifyContent:'center', alignItems:'center', color:'#fff', fontFamily:'VT323, monospace', zIndex:5 }
+const framedPanel:React.CSSProperties = {
+  background:'rgba(8,6,12,0.45)',
+  borderStyle:'solid',
+  borderWidth:96,
+  borderImageSource:`url(${frameTexture})`,
+  borderImageSlice:'256 fill',
+  borderImageRepeat:'stretch',
+  padding:24,
+  boxShadow:'0 0 30px rgba(0,0,0,0.75)',
+  color:'#cba76b'
+}
 
 function OverlayShell({ title, children, onClose }:OverlayShellProps){
   return (
     <div style={overlayContainer}>
-      <div style={{ background:'#181438', border:'4px solid #7a6bff', padding:24, minWidth:280, maxWidth:420 }}>
+      <div style={{ ...framedPanel, minWidth:280, maxWidth:420 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
-          <h2 style={{ margin:0 }}>{title}</h2>
-          <button onClick={onClose} style={{ background:'transparent', border:'none', color:'#fff', fontSize:20, cursor:'pointer' }}>×</button>
+          <h2 style={{ margin:0, color:'#cba76b', textShadow:'0 0 6px rgba(0,0,0,0.7)' }}>{title}</h2>
+          <button onClick={onClose} style={{ background:'transparent', border:'none', color:'#cba76b', fontSize:20, cursor:'pointer', textShadow:'0 0 6px rgba(0,0,0,0.7)' }}>×</button>
         </div>
         {children}
       </div>
@@ -125,126 +150,38 @@ function writeSave(data:GameSave){
   window.localStorage.setItem(SAVE_KEY, JSON.stringify(data))
 }
 
-function InventoryOverlay({ bag, heroes, onClose, onUpdated }:{ bag:Bag; heroes:Hero[]; onClose:()=>void; onUpdated:()=>void }){
-  const entries = Inventory.list(bag)
-  const [selected, setSelected] = useState(0)
-  const [message, setMessage] = useState<string|null>(null)
-  const [, force] = useState(0)
-  useEffect(()=>{
-    if (selected >= entries.length && entries.length>0){
-      setSelected(entries.length-1)
-    }
-  },[entries.length, selected])
-  const selectedEntry = entries[selected]
-  const selectedItem = selectedEntry ? getItemById(selectedEntry.id) : undefined
-
-  const handleUse = (hero:Hero)=>{
-    if (!selectedEntry || !selectedItem){
-      setMessage('Select an item first.')
-      return
-    }
-    if (selectedItem.kind !== 'heal' || selectedItem.target!=='ally'){
-      setMessage('This item cannot be used outside battle.')
-      return
-    }
-    const derived = computeHeroStats(hero)
-    if (hero.hp >= derived.hp){
-      setMessage(`${hero.name} is already at full HP.`)
-      return
-    }
-    if (!Inventory.use(bag, selectedEntry.id)){
-      setMessage(`You are out of ${selectedItem.name}.`)
-      force(x=>x+1)
-      onUpdated()
-      return
-    }
-    const before = hero.hp
-    hero.hp = Math.min(derived.hp, hero.hp + selectedItem.amount)
-    const delta = hero.hp - before
-    setMessage(`${selectedItem.name} restored ${delta} HP to ${hero.name}.`)
-    force(x=>x+1)
-    onUpdated()
-  }
-
-  return (
-    <OverlayShell title="Inventory" onClose={onClose}>
-      {entries.length ? (
-        <div style={{ display:'flex', gap:12 }}>
-          <ul style={{ listStyle:'none', padding:0, margin:0, minWidth:160 }}>
-            {entries.map((entry, idx)=>{
-              const meta = getItemById(entry.id)
-              const active = idx===selected
-              return (
-                <li
-                  key={entry.id}
-                  style={{
-                    marginBottom:8,
-                    padding:8,
-                    border:'1px solid #6a5dff',
-                    background: active ? '#342b63' : '#231f48',
-                    cursor:'pointer'
-                  }}
-                  onClick={()=>{ setSelected(idx); setMessage(null) }}
-                >
-                  <strong>{meta?.name ?? entry.id}</strong> × {entry.qty}
-                  <div style={{ fontSize:12, color:'#cfd2ff' }}>{meta?.description ?? 'Consumable'}</div>
-                </li>
-              )
-            })}
-          </ul>
-          <div style={{ flex:1 }}>
-            {selectedItem ? (
-              <>
-                <h3 style={{ marginTop:0 }}>{selectedItem.name}</h3>
-                <p style={{ marginTop:0 }}>{selectedItem.description}</p>
-                {selectedItem.kind==='heal' ? (
-                  <div>
-                    <p style={{ fontSize:12, color:'#cfd2ff' }}>Choose a hero to receive {selectedItem.amount} HP.</p>
-                    <div style={{ maxHeight:160, overflowY:'auto' }}>
-                      {heroes.map(hero=>{
-                        const derived = computeHeroStats(hero)
-                        const atCap = hero.hp >= derived.hp
-                        return (
-                          <div key={hero.id} style={{ display:'flex', justifyContent:'space-between', marginBottom:6, padding:6, border:'1px solid #6a5dff', background:'#1a1734' }}>
-                            <div>
-                              <strong>{hero.name}</strong>
-                              <div style={{ fontSize:12 }}>HP {hero.hp}/{derived.hp}</div>
-                            </div>
-                            <button
-                              onClick={()=>handleUse(hero)}
-                              disabled={atCap}
-                              style={{ background:'#4e447b', border:'1px solid #9b8bff', color:'#fff', cursor:atCap?'not-allowed':'pointer', padding:'4px 12px' }}
-                            >
-                              Use
-                            </button>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                ) : (
-                  <p style={{ fontSize:12, color:'#f8c67c' }}>Damage items can only be used in combat.</p>
-                )}
-              </>
-            ) : (
-              <p style={{ fontSize:12 }}>Select an item to see details.</p>
-            )}
-            {message && <p style={{ fontSize:12, color:'#9be09b', marginTop:12 }}>{message}</p>}
-          </div>
-        </div>
-      ) : (
-        <p style={{ fontSize:14 }}>No usable items.</p>
-      )}
-    </OverlayShell>
-  )
-}
-
-function SettingsOverlay({ settings, onChange, onClose }:{ settings:GameSettings; onChange:(next:GameSettings)=>void; onClose:()=>void }){
+export function SettingsOverlay({ settings, onChange, onClose }:{ settings:GameSettings; onChange:(next:GameSettings)=>void; onClose:()=>void }){
   const update = (patch:Partial<GameSettings>)=>{
     onChange({ ...settings, ...patch })
   }
   return (
     <OverlayShell title="Settings" onClose={onClose}>
+      <div style={{ marginBottom:16 }}>
+        <strong>Viewport</strong>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:6 }}>
+          {Object.values(VIEWPORT_PRESETS).map(preset=>{
+            const active = settings.viewportPreset===preset.key
+            return (
+              <button
+                key={preset.key}
+                onClick={()=>update({ viewportPreset:preset.key })}
+                style={{
+                  flex:'1 1 120px',
+                  padding:'6px 8px',
+                  border:'1px solid #7a6bff',
+                  background: active ? '#332a63' : '#1a1530',
+                  color:'#fff',
+                  cursor:'pointer'
+                }}
+              >
+                <div>{preset.label}</div>
+                <div style={{ fontSize:11, color:'#cfd2ff' }}>{preset.description}</div>
+              </button>
+            )
+          })}
+        </div>
+        <p style={{ fontSize:11, color:'#cfd2ff', marginTop:4 }}>Wider presets render more of the map and battles.</p>
+      </div>
       <div style={{ marginBottom:16 }}>
         <strong>Movement Speed</strong>
         <div style={{ display:'flex', gap:8, marginTop:6 }}>
@@ -285,6 +222,44 @@ function SettingsOverlay({ settings, onChange, onClose }:{ settings:GameSettings
           </button>
         </div>
       </div>
+      <div style={{ marginBottom:16 }}>
+        <strong>Resolution Scale</strong>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:6 }}>
+          {resolutionOptions.map(option=>{
+            const label = option==='fit' ? 'Fit' : option==='fill' ? 'Fill' : `${option}×`
+            const active = settings.resolutionScale===option
+            return (
+              <button
+                key={option.toString()}
+                onClick={()=>update({ resolutionScale: option })}
+                style={{
+                  flex:'1 1 70px',
+                  padding:'6px 8px',
+                  border:'1px solid #7a6bff',
+                  background: active ? '#332a63' : '#1a1530',
+                  color:'#fff',
+                  cursor:'pointer'
+                }}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+        <p style={{ fontSize:11, color:'#cfd2ff', marginTop:6 }}>Fit = largest integer scale; Fill = stretch to window.</p>
+      </div>
+      <div style={{ marginBottom:16 }}>
+        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:14 }}>
+          <input
+            type="checkbox"
+            checked={settings.fullscreen}
+            onChange={(e)=>update({ fullscreen:e.target.checked })}
+            style={{ transform:'scale(1.1)' }}
+          />
+          Fullscreen
+        </label>
+        <p style={{ fontSize:11, color:'#cfd2ff', marginTop:4 }}>Some browsers require a user gesture to enter fullscreen.</p>
+      </div>
       <p style={{ fontSize:12, color:'#cfd2ff' }}>Applies immediately to overworld movement and encounter rolls.</p>
     </OverlayShell>
   )
@@ -319,12 +294,19 @@ function LoadOverlay({ save, disabled, onLoad, onClose }:{ save:GameSave|null; d
   )
 }
 
-export default function MistheartGame({ onQuit }:{ onQuit?:()=>void }){
-  const { canvasRef, containerRef, ctx } = useCanvas(VIEW_W, VIEW_H)
+interface MistheartGameProps {
+  onQuit?:()=>void
+  settings:GameSettings
+  onChangeSettings:(next:GameSettings)=>void
+}
+
+export default function MistheartGame({ onQuit, settings, onChangeSettings }:MistheartGameProps){
   const [game, setGame] = useState<Game|null>(null)
   const [paused, setPaused] = useState(false)
   const [overlay, setOverlay] = useState<Overlay>(null)
-  const [settings, setSettings] = useState<GameSettings>(defaultSettings)
+  const [menuTab, setMenuTab] = useState<GameMenuTab>('inventory')
+  const viewport = useMemo(()=>resolveViewport(settings.viewportPreset), [settings.viewportPreset])
+  const { canvasRef, containerRef, ctx } = useCanvas(viewport.width, viewport.height, { scaleMode: settings.resolutionScale })
   const [cachedSave, setCachedSave] = useState<GameSave|null>(()=>readSave())
   const [, setDataTick] = useState(0)
   const overlayRef = useRef<Overlay>(null)
@@ -332,6 +314,8 @@ export default function MistheartGame({ onQuit }:{ onQuit?:()=>void }){
   const gameRef = useRef<Game|null>(null)
   const worldRef = useRef<WorldState|null>(null)
   const inBattleRef = useRef(false)
+  const settingsRef = useRef(settings)
+  useEffect(()=>{ settingsRef.current = settings },[settings])
   const setPausedState = useCallback((value:boolean)=>{
     pausedRef.current = value
     setPaused(value)
@@ -353,23 +337,33 @@ export default function MistheartGame({ onQuit }:{ onQuit?:()=>void }){
     'aether-amulet':1,
     'scout-greaves':1
   })
-  const createWorldScene = useCallback((world:WorldState, party:Hero[], bag:Bag)=>{
+  const createWorldScene = useCallback((world:WorldState, party:Hero[], bag:Bag, dims = viewport)=>{
     return new WorldScene(
-      VIEW_W,
-      VIEW_H,
+      dims.width,
+      dims.height,
       world,
       party,
       bag,
-      (battle:BattleScene)=>{
-        inBattleRef.current = true
-        gameRef.current?.push(battle)
+      (battle:BattleScene, ctx)=>{
+        const transition = new MistTransitionScene(dims.width, dims.height, {
+          world: ctx.world,
+          ui: ctx.ui,
+          onComplete: ()=>{
+            const gameInstance = gameRef.current
+            if (!gameInstance) return
+            gameInstance.pop()
+            inBattleRef.current = true
+            gameInstance.push(battle)
+          }
+        })
+        gameRef.current?.push(transition)
       },
       ()=>{
         inBattleRef.current = false
         gameRef.current?.pop()
       }
     )
-  },[])
+  },[viewport])
   const buildSavePayload = useCallback(()=>{
     const world = worldRef.current
     if (!world) return null
@@ -395,15 +389,17 @@ export default function MistheartGame({ onQuit }:{ onQuit?:()=>void }){
     inventoryRef.current = bag
     const heroes = cloneHeroes(save.heroes)
     partyRef.current = heroes
-    const world = new WorldState(VIEW_W / TILE_SIZE, VIEW_H / TILE_SIZE, { seed: save.seed })
+    const presetKey = save.settings?.viewportPreset ?? defaultSettings.viewportPreset
+    const targetViewport = resolveViewport(presetKey)
+    const world = new WorldState(targetViewport.cols, targetViewport.rows, { seed: save.seed })
     world.playerPx.x = save.player?.x ?? world.playerPx.x
     world.playerPx.y = save.player?.y ?? world.playerPx.y
     world.minimapMode = save.minimapMode ?? 0
     worldRef.current = world
     inBattleRef.current = false
-    const scene = createWorldScene(world, heroes, bag)
+    const scene = createWorldScene(world, heroes, bag, targetViewport)
     gameRef.current.replace(scene)
-    setSettings(save.settings ?? defaultSettings)
+    onChangeSettings(save.settings ? { ...defaultSettings, ...save.settings, viewportPreset: presetKey } : defaultSettings)
     setOverlayState(null)
     setPausedState(false)
     markDataUpdated()
@@ -413,8 +409,8 @@ export default function MistheartGame({ onQuit }:{ onQuit?:()=>void }){
     if (!ctx) return
 
     Input.attach()
-    const gameInstance = new Game(VIEW_W, VIEW_H)
-    const world = new WorldState(VIEW_W / TILE_SIZE, VIEW_H / TILE_SIZE)
+    const gameInstance = new Game(viewport.width, viewport.height)
+    const world = new WorldState(viewport.cols, viewport.rows)
     worldRef.current = world
     const party = createHeroes(heroesData as any)
     partyRef.current = party
@@ -432,7 +428,7 @@ export default function MistheartGame({ onQuit }:{ onQuit?:()=>void }){
       setGame(null)
       Input.detach()
     }
-  },[ctx, createWorldScene])
+  },[ctx, createWorldScene, viewport])
 
   useEffect(()=>{
     const world = worldRef.current
@@ -440,6 +436,39 @@ export default function MistheartGame({ onQuit }:{ onQuit?:()=>void }){
     world.speed = world.baseSpeed * settings.worldSpeed
     world.encounterModifier = settings.encounterRate
   },[settings])
+
+  const fullscreenEnabled = settings.fullscreen
+
+  useEffect(()=>{
+    if (typeof document === 'undefined') return
+    const container = containerRef.current
+    if (!container) return
+    if (fullscreenEnabled){
+      if (document.fullscreenElement !== container){
+        container.requestFullscreen().catch(()=>{
+          const current = settingsRef.current
+          if (current.fullscreen){
+            onChangeSettings({ ...current, fullscreen:false })
+          }
+        })
+      }
+    } else if (document.fullscreenElement === container){
+      document.exitFullscreen().catch(()=>{})
+    }
+  },[fullscreenEnabled, containerRef, onChangeSettings])
+
+  useEffect(()=>{
+    if (typeof document === 'undefined') return
+    const handle = ()=>{
+      const container = containerRef.current
+      const active = document.fullscreenElement === container
+      const current = settingsRef.current
+      if (current.fullscreen===active) return
+      onChangeSettings({ ...current, fullscreen: active })
+    }
+    document.addEventListener('fullscreenchange', handle)
+    return ()=>document.removeEventListener('fullscreenchange', handle)
+  },[onChangeSettings])
 
   useEffect(()=>{
     if (!paused) return
@@ -464,9 +493,10 @@ export default function MistheartGame({ onQuit }:{ onQuit?:()=>void }){
     }
 
     if (key==='i' || key==='p' || key==='c'){
-      if (key==='i') setOverlayState('inventory')
-      if (key==='p') setOverlayState('party')
-      if (key==='c') setOverlayState('character')
+      if (key==='i') setMenuTab('inventory')
+      if (key==='p') setMenuTab('party')
+      if (key==='c') setMenuTab('equipment')
+      setOverlayState('menu')
       e.preventDefault()
       return
     }
@@ -516,34 +546,21 @@ export default function MistheartGame({ onQuit }:{ onQuit?:()=>void }){
           onQuit={()=>{ setPausedState(false); onQuit?.() }}
         />
       )}
-      {overlay==='inventory' && (
-        <InventoryOverlay
-          bag={inventoryRef.current}
-          heroes={partyRef.current}
+      {overlay==='menu' && (
+        <GameMenuOverlay
+          tab={menuTab}
+          onChangeTab={setMenuTab}
           onClose={()=>setOverlayState(null)}
-          onUpdated={markDataUpdated}
-        />
-      )}
-      {overlay==='party' && (
-        <PartyOverlay
-          heroes={partyRef.current}
-          maxActive={3}
-          minActive={1}
-          onClose={()=>setOverlayState(null)}
-          onUpdated={markDataUpdated}
-        />
-      )}
-      {overlay==='character' && (
-        <CharacterEquipmentOverlay
           heroes={partyRef.current}
           bag={inventoryRef.current}
-          onClose={()=>setOverlayState(null)}
+          onPartyUpdated={markDataUpdated}
+          onInventoryUpdated={markDataUpdated}
         />
       )}
       {overlay==='settings' && (
         <SettingsOverlay
           settings={settings}
-          onChange={setSettings}
+          onChange={onChangeSettings}
           onClose={()=>setOverlayState(null)}
         />
       )}

@@ -183,7 +183,7 @@ export class BattleScene implements IScene {
     this.advanceHero()
   }
   private advanceHero(){
-    const next = this.nextAliveHero(this.state.cursor.heroIdx+1)
+    const next = this.nextAliveHero(this.state.cursor.heroIdx+1, false)
     if (next===-1){
       this.state.phase='ENEMY_TURN'
     } else {
@@ -195,11 +195,17 @@ export class BattleScene implements IScene {
       this.state.phase='HERO_INPUT'
     }
   }
-  private nextAliveHero(start:number){
+  private nextAliveHero(start:number, wrap=true){
     const heroes = this.state.heroes
     if (!heroes.length) return -1
-    for (let i=0;i<heroes.length;i++){
-      const idx = this.wrap(start+i, heroes.length)
+    if (wrap){
+      for (let i=0;i<heroes.length;i++){
+        const idx = this.wrap(start+i, heroes.length)
+        if (heroes[idx]?.alive) return idx
+      }
+      return -1
+    }
+    for (let idx=Math.max(0,start); idx<heroes.length; idx++){
       if (heroes[idx]?.alive) return idx
     }
     return -1

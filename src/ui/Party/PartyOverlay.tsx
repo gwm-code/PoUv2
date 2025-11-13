@@ -9,18 +9,18 @@ function getPortraitFor(heroId:string):string|undefined {
   return portraitImports[key]
 }
 
+const overlayRoot:React.CSSProperties = { position:'absolute', top:0, left:0, width:'100%', height:'100%', background:'rgba(5,4,12,0.78)', display:'flex', justifyContent:'center', alignItems:'center' }
+
 const panelStyle:React.CSSProperties = {
-  background:'#120f26',
-  border:'2px solid #7a6bff',
-  padding:16,
   color:'#fff',
   fontFamily:'VT323, monospace',
-  width:840,
-  maxWidth:'90vw',
+  width:'100%',
+  height:'100%',
   display:'grid',
-  gridTemplateColumns:'1fr 260px',
-  gridTemplateRows:'220px 1fr',
-  gap:12
+  gridTemplateColumns:'1.1fr 280px',
+  gridTemplateRows:'minmax(180px, auto) 1fr',
+  gap:18,
+  padding:'4px 6px'
 }
 
 const headerText:React.CSSProperties = { fontSize:18, textTransform:'uppercase', letterSpacing:1, marginBottom:8, color:'#d3c9ff' }
@@ -46,12 +46,13 @@ const portraitBox:React.CSSProperties = {
   overflow:'hidden'
 }
 
-const reserveListStyle:React.CSSProperties = { border:'2px solid #4e447b', background:'#181438', overflowY:'auto', maxHeight:240 }
+const reserveListStyle:React.CSSProperties = { border:'1px solid rgba(255,255,255,0.15)', background:'rgba(255,255,255,0.03)', overflowY:'auto', maxHeight:240, padding:6 }
 
 const statusPanel:React.CSSProperties = {
-  border:'2px solid #4e447b',
-  background:'#181438',
-  padding:16
+  border:'1px solid rgba(255,255,255,0.2)',
+  background:'rgba(255,255,255,0.04)',
+  padding:16,
+  borderRadius:6
 }
 
 const bar = (value:number, max:number, color:string):React.CSSProperties=>{
@@ -79,15 +80,18 @@ const barFill = (value:number, max:number, color:string):React.CSSProperties=>{
   }
 }
 
-interface PartyOverlayProps {
+interface PartyPanelProps {
   heroes:Hero[]
   maxActive:number
   minActive:number
-  onClose:()=>void
   onUpdated:()=>void
 }
 
-export function PartyOverlay({ heroes, maxActive, minActive, onClose, onUpdated }:PartyOverlayProps){
+export interface PartyOverlayProps extends PartyPanelProps {
+  onClose:()=>void
+}
+
+export function PartyPanel({ heroes, maxActive, minActive, onUpdated }:PartyPanelProps){
   const [selection, setSelection] = useState<{ group:'active'|'reserve'; index:number }>({ group:'active', index:0 })
   const activeHeroes = heroes.filter(h=>h.active !== false)
   const reserveHeroes = heroes.filter(h=>h.active === false)
@@ -135,7 +139,7 @@ export function PartyOverlay({ heroes, maxActive, minActive, onClose, onUpdated 
             : <span style={{ color:'#6f67a1', fontSize:14 }}>Empty</span>}
         </div>
         <div>
-          <div style={{ fontSize:16, color:'#ffe082' }}>{hero ? hero.name : '- Empty -'}</div>
+          <div style={{ fontSize:16, color:'#fff' }}>{hero ? hero.name : '- Empty -'}</div>
           <div style={{ fontSize:13, color:'#cfd2ff' }}>{hero ? hero.class : 'Slot available'}</div>
         </div>
       </div>
@@ -163,7 +167,6 @@ export function PartyOverlay({ heroes, maxActive, minActive, onClose, onUpdated 
   }
 
   return (
-    <div style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', background:'rgba(5,4,12,0.8)', display:'flex', justifyContent:'center', alignItems:'center' }}>
       <div style={panelStyle}>
         <div style={{ gridColumn:'1 / span 2' }}>
           <div style={headerText}>Active Party ({activeHeroes.length}/{maxActive})</div>
@@ -219,10 +222,22 @@ export function PartyOverlay({ heroes, maxActive, minActive, onClose, onUpdated 
             ) : (
               <p style={{ color:'#cfd2ff' }}>Select a hero to view details.</p>
             )}
-            <button onClick={onClose} style={{ marginTop:12, width:'100%', padding:'6px 0', background:'transparent', border:'1px solid #7a6bff', color:'#fff', cursor:'pointer' }}>Close</button>
           </div>
         </div>
       </div>
+  )
+}
+
+export function PartyOverlay({ onClose, ...rest }:PartyOverlayProps){
+  return (
+    <div style={overlayRoot}>
+      <PartyPanel {...rest} />
+      <button
+        onClick={onClose}
+        style={{ position:'absolute', top:24, right:32, background:'transparent', border:'none', color:'#fff', fontSize:28, cursor:'pointer' }}
+      >
+        ×
+      </button>
     </div>
   )
 }

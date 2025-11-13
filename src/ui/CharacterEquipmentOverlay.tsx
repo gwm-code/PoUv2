@@ -12,6 +12,14 @@ interface CharacterEquipmentOverlayProps {
   onClose:()=>void
 }
 
+interface CharacterEquipmentPanelProps extends CharacterEquipmentOverlayProps {
+  embedded?:boolean
+}
+
+export function CharacterEquipmentOverlay(props:CharacterEquipmentOverlayProps){
+  return <CharacterEquipmentPanel {...props} />
+}
+
 const slotOrder:EquipmentSlot[] = ['head','torso','wield1','wield2','ring','amulet','legs']
 const slotLabels:Record<EquipmentSlot,string> = {
   head:'Head',
@@ -23,7 +31,7 @@ const slotLabels:Record<EquipmentSlot,string> = {
   legs:'Legs'
 }
 
-export function CharacterEquipmentOverlay({ heroes, bag, onClose }:CharacterEquipmentOverlayProps){
+export function CharacterEquipmentPanel({ heroes, bag, onClose, embedded }:CharacterEquipmentPanelProps){
   const [heroIndex, setHeroIndex] = useState(0)
   const [selection, setSelection] = useState<{area:'slots'|'inventory'; index:number}>({ area:'inventory', index:0 })
   const [pendingItem, setPendingItem] = useState<string|null>(null)
@@ -171,9 +179,10 @@ export function CharacterEquipmentOverlay({ heroes, bag, onClose }:CharacterEqui
   }
 
   if (!hero){
+    if (embedded) return null
     return (
       <div style={overlayRoot}>
-        <div style={panel}>
+        <div style={{ background:'rgba(5,4,12,0.78)', padding:24 }}>
           <p>No heroes available.</p>
           <button style={closeButton} onClick={onClose}>Close</button>
         </div>
@@ -181,8 +190,7 @@ export function CharacterEquipmentOverlay({ heroes, bag, onClose }:CharacterEqui
     )
   }
 
-  return (
-    <div style={overlayRoot}>
+  const content = (
       <div style={fullPanel}>
         <div style={headerRow}>
           <div style={tabRow}>
@@ -221,7 +229,7 @@ export function CharacterEquipmentOverlay({ heroes, bag, onClose }:CharacterEqui
                     draggable
                     onDragStart={(event)=>handleDragStart(event, entry.id)}
                   >
-                    <div style={{ fontWeight:600 }}>{gear.name}</div>
+                    <div style={{ fontWeight:400 }}>{gear.name}</div>
                     <div style={{ fontSize:12, color:'#cfd2ff' }}>{slotLabels[gear.slot]}</div>
                     <div style={{ fontSize:12, marginTop:4 }}>{gearBonusesText(gear)}</div>
                     <div style={{ fontSize:12, marginTop:6 }}>x{entry.qty}</div>
@@ -284,6 +292,13 @@ export function CharacterEquipmentOverlay({ heroes, bag, onClose }:CharacterEqui
           </div>
         </div>
       </div>
+  )
+
+  if (embedded) return content
+
+  return (
+    <div style={overlayRoot}>
+      {content}
     </div>
   )
 
@@ -316,7 +331,7 @@ const overlayRoot:React.CSSProperties = {
   left:0,
   width:'100%',
   height:'100%',
-  background:'rgba(3,3,8,0.95)',
+  background:'rgba(5,4,12,0.78)',
   display:'flex',
   justifyContent:'center',
   alignItems:'center',
@@ -325,20 +340,12 @@ const overlayRoot:React.CSSProperties = {
   fontFamily:'VT323, monospace'
 }
 
-const panel:React.CSSProperties = {
-  background:'#181438',
-  border:'4px solid #7a6bff',
-  padding:24,
-  minWidth:300
-}
-
 const fullPanel:React.CSSProperties = {
-  ...panel,
-  width:'90%',
-  maxWidth:900,
-  height:'85%',
+  width:'100%',
+  height:'100%',
   display:'flex',
-  flexDirection:'column'
+  flexDirection:'column',
+  color:'#fff'
 }
 
 const headerRow:React.CSSProperties = {
@@ -358,7 +365,8 @@ const tab:React.CSSProperties = {
   color:'#cfd2ff',
   border:'1px solid #4e4fa4',
   padding:'6px 14px',
-  cursor:'pointer'
+  cursor:'pointer',
+  fontFamily:'inherit'
 }
 
 const activeTab:React.CSSProperties = {
@@ -372,36 +380,37 @@ const closeButton:React.CSSProperties = {
   border:'none',
   color:'#fff',
   fontSize:24,
-  cursor:'pointer'
+  cursor:'pointer',
+  fontFamily:'inherit'
 }
 
 const contentRow:React.CSSProperties = {
-  display:'flex',
-  flex:1,
+  display:'grid',
+  gridTemplateColumns:'1.2fr 0.8fr',
   gap:24,
-  overflow:'hidden'
+  flex:1,
+  overflow:'hidden',
+  padding:'8px 4px'
 }
 
 const inventoryColumn:React.CSSProperties = {
-  flex:1,
   display:'flex',
   flexDirection:'column',
-  overflow:'hidden',
-  paddingRight:16
+  overflow:'hidden'
 }
 
 const detailColumn:React.CSSProperties = {
-  flex:'0 0 40%',
   display:'flex',
   flexDirection:'column',
-  gap:16
+  gap:16,
+  overflow:'hidden'
 }
 
 const silhouetteCard:React.CSSProperties = {
-  background:'#1f2150',
-  border:'1px solid rgba(255,255,255,0.15)',
   padding:16,
-  flex:1
+  flex:1,
+  border:'1px solid rgba(255,255,255,0.15)',
+  background:'rgba(255,255,255,0.03)'
 }
 
 const silhouetteWrapper:React.CSSProperties = {
@@ -418,10 +427,11 @@ const silhouette:React.CSSProperties = {
 const slotBadge:React.CSSProperties = {
   position:'absolute',
   width:140,
-  border:'1px solid rgba(255,255,255,0.3)',
+  border:'1px solid rgba(255,255,255,0.2)',
   padding:'6px 8px',
-  background:'rgba(4,4,12,0.65)',
-  cursor:'pointer'
+  background:'rgba(18,17,38,0.85)',
+  cursor:'pointer',
+  fontFamily:'inherit'
 }
 
 const slotLabel:React.CSSProperties = {
@@ -431,8 +441,8 @@ const slotLabel:React.CSSProperties = {
 }
 
 const statsCard:React.CSSProperties = {
-  background:'#1f2150',
-  border:'1px solid rgba(255,255,255,0.15)',
+  background:'rgba(255,255,255,0.03)',
+  border:'1px solid rgba(255,255,255,0.2)',
   padding:16
 }
 
@@ -455,11 +465,12 @@ const inventoryGrid:React.CSSProperties = {
 }
 
 const inventoryCard:React.CSSProperties = {
-  border:'1px solid rgba(255,255,255,0.2)',
+  border:'1px solid rgba(255,255,255,0.15)',
   padding:12,
   minHeight:100,
   cursor:'pointer',
-  background:'rgba(255,255,255,0.02)'
+  background:'rgba(255,255,255,0.04)',
+  fontFamily:'inherit'
 }
 
 const controlsNote:React.CSSProperties = {

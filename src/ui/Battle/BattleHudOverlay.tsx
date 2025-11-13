@@ -164,7 +164,7 @@ function PartyList({ heroes }:{ heroes:UnitDisplay[] }){
   return (
     <div style={partyRow}>
       {heroes.map(hero=>(
-        <div key={hero.id ?? hero.name} style={partyChip(hero.alive)}>
+        <div key={hero.id ?? hero.name} style={partyChip(hero.alive, hero.active)}>
           <strong style={{ marginRight:4 }}>{hero.name}</strong>
           <StatRow label="HP" value={hero.hp} max={hero.maxHp} color="#ff8b8b" />
           {typeof hero.maxMp==='number' && (
@@ -245,14 +245,17 @@ const partyRow:React.CSSProperties = {
   fontSize:13
 }
 
-const partyChip = (alive?:boolean):React.CSSProperties=>({
+const partyChip = (alive?:boolean, active?:boolean):React.CSSProperties=>({
   display:'flex',
   flexDirection:'column',
   gap:4,
   padding:'8px 10px',
-  border:'1px solid rgba(255,255,255,0.2)',
+  border: active ? '2px solid #ffd166' : '1px solid rgba(255,255,255,0.2)',
   borderRadius:4,
-  background: alive === false ? 'rgba(40,32,54,0.6)' : 'rgba(30,26,52,0.85)',
+  background: alive === false
+    ? 'rgba(40,32,54,0.6)'
+    : (active ? 'rgba(70,54,102,0.95)' : 'rgba(30,26,52,0.85)'),
+  boxShadow: active ? '0 0 8px rgba(255,209,102,0.35)' : 'none',
   color:'#e7e3ff'
 })
 

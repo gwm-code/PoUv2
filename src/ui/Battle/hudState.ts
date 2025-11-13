@@ -27,6 +27,7 @@ export interface UnitDisplay {
   level?:number
   alive?:boolean
   atb?:number
+  active?:boolean
 }
 
 export interface BattleHudState {

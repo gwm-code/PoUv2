@@ -44,11 +44,18 @@ The project uses Vite + React with TypeScript (strict mode). Imports rely on TS 
 | Battle     | `Enter/Z/Space` confirm, `Esc/X` cancel. Multi-tier menu (Attack / Skills / Spells / Items). Target selection with arrows/WASD; `Enter` commits, `Esc` backs out. |
 | Overlays   | `I` Inventory; `P` Party management; `C` Character equipment. `Esc` closes. |
 | Pause      | `Esc` toggles pause menu (resume/settings/load/quit). Autosave fires whenever you pause outside combat. |
+| Start Menu | Click the gold speaker icon to mute/unmute the corridor theme (preference is saved). |
 
 HUD Highlights (as of 2025‑11‑12):
 - Action + Party panels tuck inside the battlefield frame.
 - A slim enemy strip above the HUD summarises each foe (`Name: HP X/Y` + inline bar).
 - Party cards show inline HP/MP bars and tabular numeric text for easy scanning.
+
+### Display Settings & Audio
+- Pause → Settings now exposes multiple viewports (**Classic 4:3**, **Widescreen 16:9**, **Cinematic 16:9**) that redraw the world/battle scenes with more tiles onscreen.
+- Resolution Scale (Fit, 1×–4×) still controls pixel size, and the **Fullscreen** toggle requests the browser API; prefs persist with the autosave payload.
+- `I`, `P`, or `C` now open a single **Game Menu** overlay with tabs for Inventory, Party, and Equipment, so you can swap between management screens without closing the menu.
+- The title screen plays the “Into the Mistheart” theme on loop; the speaker toggle shares its mute state with later sessions so players aren’t surprised by auto-play audio.
 
 ---
 
@@ -90,7 +97,11 @@ Noise-driven world generator with sector-based biomes, rivers, towns, and dungeo
 - `CombatState` holds battlers, menus, logs, reward tracking.
 - `Resolve.ts` handles attack/ability/item resolutions (with kill-credit XP bonuses).
 - `ui/Battle` folder draws the pixel battlefield and the React HUD overlay (actions, target list, party panel, summary).
+- `ENEMY_TURN` currently drives a lightweight AI pass where each surviving foe picks a random living hero and performs a basic attack; this is the placeholder layer we’ll extend later for scripted behaviours.
 Recent HUD work splits canvas rendering from overlay layout; the overlay gets normalized rects so it can mirror whatever geometry the renderer chooses.
+
+### Encounter Flow
+- When an overworld encounter triggers, the game now routes through a **Mist transition scene**: the world desaturates, charcoal wisps curl in from the screen edges, and a circular tear closes over the party before the battle HUD fades in. The transition lasts ~2 seconds, can be skipped with any key, and keeps the lore front-and-center (the Mist is literally swallowing the map).
 
 ### Party & Gear
 `Party.ts` seeds the hero roster from `content/heroes.json`, tracks level/XP, and applies kill bonuses. `HeroStats.ts` aggregates equipment bonuses. `CharacterEquipmentOverlay` + `PartyOverlay` expose drag/drop and active-party selection.
@@ -125,6 +136,7 @@ Open efforts (per `docs/roadmap.md` + `progress.md`):
 | Issue | Fix |
 |-------|-----|
 | Vite fails with missing deps | Run `npm install`. |
+| `npm install` fails with `esbuild ... spawnSync ... EPERM` on WSL/Win11 | Run `npm install --ignore-scripts`, then `node node_modules/esbuild/install.js || true`. The script may still print the EPERM warning but the binary lands correctly; afterwards `npm run build` succeeds. |
 | Canvas overlay looks wrong | Remember both the canvas and React overlay are positioned; restart `npm run dev` to ensure new geometry loads. |
 | Autosave/localStorage stale | Clear browser storage or delete `localStorage['mistheart_autosave']`. |
 | Modules not resolving | Node 18+ is required; TS path aliases expect Vite’s dev server. |

@@ -11,6 +11,7 @@ export default defineConfig({
       '@ui':      path.resolve(__dirname, './src/ui'),
       '@scenes':  path.resolve(__dirname, './src/scenes'),
       '@content': path.resolve(__dirname, './src/content'),
+      '@config':  path.resolve(__dirname, './src/config'),
     },
   },
 })
