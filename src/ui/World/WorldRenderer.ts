@@ -20,8 +20,9 @@ const playerImage = new Image()
 playerImage.src = playerWorldSprite
 
 export function renderWorld(ctx:CanvasRenderingContext2D, W:number, H:number, world:WorldState, ui:WorldUIState){
-  drawTilemap(ctx,W,H,world)
-  drawPlayer(ctx, world)
+  const camera = computeCamera(world, W, H)
+  drawTilemap(ctx,W,H,world, camera.x, camera.y)
+  drawPlayer(ctx, world, camera.x, camera.y)
   ctx.save()
   ctx.font='12px "VT323", monospace'
   ctx.fillStyle='rgba(0,0,0,0.6)'
@@ -40,6 +41,11 @@ function getTileImage(type:number){
   if (tileImages[type]) return tileImages[type]
   if (type===9){
     const canvas = createFieldTile()
+    tileImages[type]=canvas
+    return canvas
+  }
+  if (type===4){
+    const canvas = createDungeonTile()
     tileImages[type]=canvas
     return canvas
   }
@@ -104,35 +110,48 @@ function createFieldTile(){
   return canvas
 }
 
-function drawTilemap(ctx:CanvasRenderingContext2D, W:number, H:number, world:WorldState){
+function createDungeonTile(){
+  const canvas=document.createElement('canvas')
+  canvas.width=16; canvas.height=16
+  const g=canvas.getContext('2d')!
+  g.fillStyle='#2f1a2f'
+  g.fillRect(0,0,16,16)
+  g.fillStyle='#6c3c84'
+  g.fillRect(2,2,12,12)
+  g.fillStyle='#f3f2ff'
+  g.fillRect(6,2,4,12)
+  g.fillRect(2,6,12,4)
+  g.fillStyle='rgba(255,240,180,0.4)'
+  g.fillRect(4,4,8,8)
+  return canvas
+}
+
+function drawTilemap(ctx:CanvasRenderingContext2D, W:number, H:number, world:WorldState, cameraX:number, cameraY:number){
   const TILE=16
-  for(let r=0;r<H/TILE;r++){
-    for(let c=0;c<W/TILE;c++){
+  const startCol = Math.max(0, Math.floor(cameraX / TILE))
+  const endCol = Math.min(world.width, Math.ceil((cameraX + W)/TILE))
+  const startRow = Math.max(0, Math.floor(cameraY / TILE))
+  const endRow = Math.min(world.height, Math.ceil((cameraY + H)/TILE))
+  for(let r=startRow;r<endRow;r++){
+    for(let c=startCol;c<endCol;c++){
       const t = world.tile[r]?.[c]??1
       const img = getTileImage(t)
-      if (img){
-        if (img instanceof HTMLImageElement){
-          if (img.complete) ctx.drawImage(img, c*TILE, r*TILE, TILE, TILE)
-        } else {
-          ctx.drawImage(img, c*TILE, r*TILE, TILE, TILE)
-        }
+      if (!img) continue
+      const px = Math.round(c*TILE - cameraX)
+      const py = Math.round(r*TILE - cameraY)
+      if (img instanceof HTMLImageElement){
+        if (img.complete) ctx.drawImage(img, px, py, TILE, TILE)
+      } else {
+        ctx.drawImage(img, px, py, TILE, TILE)
       }
-      // Overlays disabled per art direction (edge tiles will be real sprites later)
-      // const forestMask = world.forestEdges?.[r]?.[c] ?? 0
-      // if (forestMask){
-      //   drawForestBorder(ctx, c*TILE, r*TILE, forestMask)
-      // }
-      // const riverMask = world.riverBanks?.[r]?.[c] ?? 0
-      // if (riverMask){
-      //   drawRiverBank(ctx, c*TILE, r*TILE, riverMask)
-      // }
     }
   }
 }
 
-function drawPlayer(ctx:CanvasRenderingContext2D, world:WorldState){
+function drawPlayer(ctx:CanvasRenderingContext2D, world:WorldState, cameraX:number, cameraY:number){
   if (!playerImage.complete || playerImage.naturalWidth===0){
-    const x=world.playerPx.x, y=world.playerPx.y
+    const x=world.playerPx.x - cameraX
+    const y=world.playerPx.y - cameraY
     ctx.fillStyle='#FFD700'; ctx.fillRect(x+2,y+4,12,12)
     return
   }
@@ -148,8 +167,8 @@ function drawPlayer(ctx:CanvasRenderingContext2D, world:WorldState){
   const scale = targetSize / Math.max(frameW, frameH)
   const destW = Math.round(frameW * scale)
   const destH = Math.round(frameH * scale)
-  const destX = world.playerPx.x + (16 - destW)/2
-  const destY = world.playerPx.y + 16 - destH
+  const destX = world.playerPx.x - cameraX + (16 - destW)/2
+  const destY = world.playerPx.y - cameraY + 16 - destH
   ctx.save()
   ctx.imageSmoothingEnabled = false
   ctx.drawImage(
@@ -179,4 +198,22 @@ function drawRiverBank(ctx:CanvasRenderingContext2D, x:number, y:number, mask:nu
   if (mask & 4) ctx.fillRect(x, y+16-thickness, 16, thickness)
   if (mask & 8) ctx.fillRect(x, y, thickness, 16)
   if (mask & 2) ctx.fillRect(x+16-thickness, y, thickness, 16)
+}
+
+function computeCamera(world:WorldState, viewWidth:number, viewHeight:number){
+  const tileSize = 16
+  const mapWidth = world.width * tileSize
+  const mapHeight = world.height * tileSize
+  const halfW = viewWidth/2
+  const halfH = viewHeight/2
+  const centerX = world.playerPx.x + tileSize/2
+  const centerY = world.playerPx.y + tileSize/2
+  const x = clamp(centerX - halfW, 0, Math.max(0, mapWidth - viewWidth))
+  const y = clamp(centerY - halfH, 0, Math.max(0, mapHeight - viewHeight))
+  return { x, y }
+}
+
+function clamp(value:number, min:number, max:number){
+  if (max <= min) return min
+  return Math.max(min, Math.min(max, value))
 }

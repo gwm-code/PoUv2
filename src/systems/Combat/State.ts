@@ -27,4 +27,5 @@ export interface CombatState {
   commandMode:'primary'|'skills'|'spells'|'items'
   commands: CommandEntry[]
   items: { id:string; qty:number }[]
+  tileType?: number
 }

@@ -4,17 +4,17 @@ export function drawMinimap(ctx:CanvasRenderingContext2D, W:number, H:number, wo
   const mw = Math.floor(96*scale), mh = Math.floor(72*scale)
   const x= W-mw-10, y= 10
   ctx.fillStyle='rgba(0,0,0,0.65)'; ctx.fillRect(x-3,y-3,mw+6,mh+6); ctx.strokeStyle='#7a6bff'; ctx.lineWidth=2; ctx.strokeRect(x-3,y-3,mw+6,mh+6)
-  for(let r=0;r<world.height;r++){
-    for(let c=0;c<world.width;c++){
-      const t = world.tile[r][c]
+  for(let py=0;py<mh;py++){
+    const worldY = Math.min(world.height-1, Math.floor((py/mh)*world.height))
+    for(let pxOffset=0;pxOffset<mw;pxOffset++){
+      const worldX = Math.min(world.width-1, Math.floor((pxOffset/mw)*world.width))
+      const t = world.tile[worldY][worldX]
       ctx.fillStyle = t===5?'#274f2a'
         : t===6?'#b99962'
         : t===7?'#f2d0a2'
         : t===8?'#e06b6b'
-        : world.tileColorFor(c, r, t)
-      const px = x + Math.floor(c*(mw/world.width))
-      const py = y + Math.floor(r*(mh/world.height))
-      ctx.fillRect(px,py,1,1)
+        : world.tileColorFor(worldX, worldY, t)
+      ctx.fillRect(x+pxOffset, y+py, 1,1)
     }
   }
   const px = x + Math.floor((world.playerPx.x/16)*(mw/world.width))

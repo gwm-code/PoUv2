@@ -2,19 +2,29 @@ import { setBattleHudState } from '@ui/Battle/hudState'
 
 const battlefieldImage = new Image()
 battlefieldImage.src = new URL('../../assets/backgrounds/fields.png', import.meta.url).toString()
-type SpriteCache = Record<string, HTMLCanvasElement|HTMLImageElement>
+const backgroundCache:Record<string, HTMLImageElement|null> = {
+  default: battlefieldImage
+}
+type SpriteCache = Record<string, HTMLCanvasElement|HTMLImageElement|null>
 const heroSprites:SpriteCache = {}
 const enemySprites:SpriteCache = {}
-function loadSprite(type:'heroes'|'enemies', id:string){
-  const key = id.toLowerCase()
+const DEFAULT_ENEMY_SPRITE = 'mistling'
+function loadSprite(type:'heroes'|'enemies', key:string, fileName?:string){
+  const cacheKey = key.toLowerCase()
   const store = type==='heroes'?heroSprites:enemySprites
-  if (!store[key]){
-    const img = new Image()
-    img.onload = ()=>{ store[key] = stripWhiteBackground(img) }
-    img.src = new URL(`../../assets/sprites/${type}/${key}.png`, import.meta.url).toString()
-    store[key]=img
+  if (Object.prototype.hasOwnProperty.call(store, cacheKey)){
+    return store[cacheKey] ?? undefined
   }
-  return store[key]
+  const img = new Image()
+  img.onload = ()=>{ store[cacheKey] = stripWhiteBackground(img) }
+  img.onerror = ()=>{
+    console.warn(`[BattleRenderer] Failed to load ${type} sprite ${fileName ?? cacheKey}`)
+    store[cacheKey] = null
+  }
+  const fileSegment = fileName ?? `${cacheKey}.png`
+  img.src = new URL(`../../assets/sprites/${type}/${fileSegment}`, import.meta.url).toString()
+  store[cacheKey] = img
+  return img
 }
 
 interface Frame { x:number; y:number; w:number; h:number }
@@ -22,7 +32,7 @@ interface Frame { x:number; y:number; w:number; h:number }
 export function drawBattleRenderer(ctx: CanvasRenderingContext2D, state: any, frame: Frame) {
   const innerPad = Math.max(8, Math.round(Math.min(frame.w, frame.h)*0.03))
   const inner = { x: frame.x + innerPad, y: frame.y + innerPad, w: frame.w - innerPad*2, h: frame.h - innerPad*2 }
-  drawBattlefield(ctx, inner)
+  drawBattlefield(ctx, inner, state.tileType)
   const topBannerHeight = 26
   const hudGap = 6
   const hudHeight = Math.max(92, inner.h * 0.34)
@@ -60,15 +70,16 @@ export function drawBattleRenderer(ctx: CanvasRenderingContext2D, state: any, fr
   const enemyPanel = { x: inner.x, y: enemyPanelY, w: inner.w, h: enemyPanelHeight }
 
   decayEffects(state.effects, state.heroes, state.enemies)
-  drawBattlefield(ctx, battlefield)
+  drawBattlefield(ctx, battlefield, state.tileType)
   drawEnemyLine(ctx, battlefield, state.enemies, state.cursor?.targetIdx, state.phase, state.effects, state.cursor?.targetTeam)
   drawHeroLine(ctx, battlefield, state.heroes, state.cursor?.heroIdx, state.effects, state.phase, state.cursor?.targetIdx, state.cursor?.targetTeam)
   syncHudOverlay(ctx.canvas, inner, enemyPanel, commandPanel, partyPanel, state)
 }
 
-function drawBattlefield(ctx:CanvasRenderingContext2D, area:Frame){
-  if (battlefieldImage.complete && battlefieldImage.naturalWidth){
-    ctx.drawImage(battlefieldImage, area.x, area.y, area.w, area.h)
+function drawBattlefield(ctx:CanvasRenderingContext2D, area:Frame, tileType?:number){
+  const bg = resolveBackground(tileType)
+  if (bg && bg.complete && bg.naturalWidth){
+    ctx.drawImage(bg, area.x, area.y, area.w, area.h)
     return
   }
   const sky = ctx.createLinearGradient(area.x, area.y, area.x, area.y + area.h)
@@ -80,6 +91,26 @@ function drawBattlefield(ctx:CanvasRenderingContext2D, area:Frame){
   ctx.fillRect(area.x, area.y, area.w, area.h)
   ctx.fillStyle='#3e612a'
   ctx.fillRect(area.x, area.y + area.h*0.55, area.w, area.h*0.45)
+}
+
+function resolveBackground(tileType?:number){
+  const key = typeof tileType === 'number' && Number.isInteger(tileType) ? String(tileType) : 'default'
+  const cached = backgroundCache[key]
+  if (cached !== undefined){
+    return cached ?? backgroundCache.default ?? null
+  }
+  if (key !== 'default'){
+    const img = new Image()
+    img.onload = ()=>{ backgroundCache[key] = img }
+    img.onerror = ()=>{
+      console.warn(`[BattleRenderer] Missing background for tile type ${key}, falling back to default.`)
+      backgroundCache[key] = backgroundCache.default ?? null
+    }
+    img.src = new URL(`../../assets/backgrounds/${key}.png`, import.meta.url).toString()
+    backgroundCache[key] = img
+    return img
+  }
+  return backgroundCache.default ?? null
 }
 
 function drawEnemyLine(ctx:CanvasRenderingContext2D, area:Frame, enemies:any[], targetIdx:number, phase:string, effects:Record<string,{hitTimer:number; koAlpha:number; popup?:any}>, targetTeam?:string){
@@ -117,9 +148,7 @@ function drawHeroLine(ctx:CanvasRenderingContext2D, area:Frame, heroes:any[], he
 }
 
 function drawBattlerSprite(ctx:CanvasRenderingContext2D, x:number, y:number, battler:any, highlight:boolean, type:'heroes'|'enemies', flip?:boolean, effect?:{hitTimer:number; koAlpha:number; popup?:{value:number; timer:number; mode:string; rise:number}}){
-  const baseId = (battler.id || '').replace(/\d+$/,'')
-  const spriteKey = battler.alive ? baseId : `${baseId}-defeated`
-  const sprite = spriteKey ? loadSprite(type, spriteKey) : undefined
+  const sprite = resolveBattlerSprite(battler, type)
   ctx.save()
   let drawn=false
   const yOffset = battler.alive ? 0 : 32
@@ -127,29 +156,7 @@ function drawBattlerSprite(ctx:CanvasRenderingContext2D, x:number, y:number, bat
     drawTurnIndicator(ctx, x, y+yOffset)
   }
   if (sprite){
-    if (sprite instanceof HTMLImageElement){
-      if (sprite.complete && sprite.naturalWidth){
-        if (flip){
-          ctx.save()
-          ctx.scale(-1,1)
-          ctx.drawImage(sprite, -(x+64), y+yOffset, 64, 64)
-          ctx.restore()
-        } else {
-          ctx.drawImage(sprite, x, y+yOffset, 64, 64)
-        }
-        drawn=true
-      }
-    } else {
-      if (flip){
-        ctx.save()
-        ctx.scale(-1,1)
-        ctx.drawImage(sprite, -(x+64), y+yOffset, 64, 64)
-        ctx.restore()
-      } else {
-        ctx.drawImage(sprite, x, y+yOffset, 64, 64)
-      }
-      drawn=true
-    }
+    drawn = drawSpriteImage(ctx, sprite, x, y+yOffset, flip)
   }
   if (!drawn){
     ctx.fillStyle = battler.alive ? '#f7d18b' : '#4b3c58'
@@ -165,7 +172,7 @@ function drawBattlerSprite(ctx:CanvasRenderingContext2D, x:number, y:number, bat
       ctx.save()
       ctx.globalCompositeOperation='lighter'
       ctx.globalAlpha = Math.min(0.7, effect.hitTimer*3)
-      ctx.drawImage(sprite, x, y+yOffset, 64, 64)
+      drawSpriteImage(ctx, sprite, x, y+yOffset, false)
       ctx.restore()
     }
     if (effect.popup && effect.popup.timer>0){
@@ -193,6 +200,49 @@ function drawBattlerSprite(ctx:CanvasRenderingContext2D, x:number, y:number, bat
   ctx.restore()
 }
 
+function resolveBattlerSprite(battler:any, type:'heroes'|'enemies'){
+  const attempts = buildSpriteAttempts(battler, type)
+  for (const attempt of attempts){
+    if (!attempt) continue
+    const sprite = loadSprite(type, attempt.key, attempt.file)
+    if (sprite){
+      return sprite
+    }
+  }
+  return undefined
+}
+
+function buildSpriteAttempts(battler:any, type:'heroes'|'enemies'){
+  const baseId = (battler.id || '').replace(/\d+$/,'')
+  const aliveKey = baseId ? baseId.toLowerCase() : ''
+  const deadKey = aliveKey ? `${aliveKey}-defeated` : ''
+  const attempts:{key:string; file?:string}[] = []
+  if (type==='enemies' && typeof battler.sprite === 'string' && battler.sprite.trim().length){
+    const spriteFile = battler.alive ? battler.sprite : defeatedVariant(battler.sprite)
+    const spriteKey = spriteFile ? spriteFile.replace(/\.[^.]+$/,'').toLowerCase() : ''
+    if (spriteKey){
+      attempts.push({ key:spriteKey, file:spriteFile })
+    }
+  }
+  if (battler.alive && aliveKey){
+    attempts.push({ key:aliveKey })
+  } else if (!battler.alive && deadKey){
+    attempts.push({ key:deadKey })
+  }
+  if (type==='enemies'){
+    const fallback = battler.alive ? DEFAULT_ENEMY_SPRITE : `${DEFAULT_ENEMY_SPRITE}-defeated`
+    attempts.push({ key:fallback })
+  }
+  return attempts
+}
+
+function defeatedVariant(fileName:string){
+  if (!fileName) return fileName
+  const idx = fileName.lastIndexOf('.')
+  if (idx===-1) return `${fileName}-defeated`
+  return `${fileName.slice(0, idx)}-defeated${fileName.slice(idx)}`
+}
+
 function drawTargetArrow(ctx:CanvasRenderingContext2D, x:number, y:number){
   ctx.fillStyle='#ffe382'
   ctx.beginPath()
@@ -203,6 +253,23 @@ function drawTargetArrow(ctx:CanvasRenderingContext2D, x:number, y:number){
   ctx.fill()
   ctx.strokeStyle='#b78c2a'
   ctx.stroke()
+}
+
+function drawSpriteImage(ctx:CanvasRenderingContext2D, sprite:HTMLImageElement|HTMLCanvasElement, x:number, y:number, flip?:boolean){
+  try {
+    if (flip){
+      ctx.save()
+      ctx.scale(-1,1)
+      ctx.drawImage(sprite, -(x+64), y, 64, 64)
+      ctx.restore()
+    } else {
+      ctx.drawImage(sprite, x, y, 64, 64)
+    }
+    return true
+  } catch (err){
+    console.warn('[BattleRenderer] Failed to draw sprite', err)
+    return false
+  }
 }
 
 function nextAliveIndex(units:any[]){

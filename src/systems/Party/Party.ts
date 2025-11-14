@@ -44,3 +44,11 @@ function applyXpGain(hero:Hero, amount:number, ups:string[]){
     ups.push(`${hero.name} leveled up! Lv ${hero.level}`)
   }
 }
+
+export function averageTopHeroesLevel(heroes:Hero[], topCount = 3){
+  if (!heroes.length) return 1
+  const sorted = [...heroes].sort((a,b)=> (b.level ?? 1) - (a.level ?? 1))
+  const slice = sorted.slice(0, Math.min(topCount, sorted.length))
+  const sum = slice.reduce((acc, hero)=> acc + (hero.level ?? 1), 0)
+  return sum / slice.length
+}

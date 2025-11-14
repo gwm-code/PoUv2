@@ -25,9 +25,11 @@ export interface GeneratedWorld {
   dungeons:DungeonLayout[]
   forestEdges:number[][]
   riverBanks:number[][]
+  towns:{x:number;y:number}[]
 }
 
 const FIELD_TILE = 9
+const WALKABLE_TILES = new Set([0,1,4,5,6,7,8,9])
 
 export function generateWorld(width:number, height:number, opts:WorldGenerationOptions = {}):GeneratedWorld {
   const seed = normalizeSeed(opts.seed)
@@ -71,7 +73,7 @@ export function generateWorld(width:number, height:number, opts:WorldGenerationO
   growFieldsNearTowns(tiles, towns, rng)
   const forestEdges = computeForestEdges(tiles)
   const riverBanks = computeRiverBanks(tiles)
-  return { seed, tiles, biomeMap, dungeons, forestEdges, riverBanks }
+  return { seed, tiles, biomeMap, dungeons, forestEdges, riverBanks, towns }
 }
 
 function tileFromHeight(h:number, rng:()=>number){
@@ -85,9 +87,9 @@ function tileFromHeight(h:number, rng:()=>number){
 }
 
 function makeDungeon(id:string, width:number, height:number, biomeMap:BiomeId[][], tiles:number[][], rng:()=>number):DungeonLayout{
-  const entrance = {
-    x: Math.floor(rng()*width),
-    y: Math.floor(rng()*height)
+  const entrance = findAccessibleEntrance(tiles, width, height, rng) ?? {
+    x: Math.floor(width/2),
+    y: Math.floor(height/2)
   }
   const biome = biomeMap[entrance.y]?.[entrance.x] ?? biomes[0].id
   tiles[entrance.y][entrance.x] = 4
@@ -121,35 +123,31 @@ function pick<T>(arr:readonly T[], rng:()=>number):T{
 }
 
 function addTownsAndRoads(tiles:number[][], rng:()=>number){
-  const towns = placeTownClusters(tiles, rng)
+  const towns = placeRegionTowns(tiles, rng)
   connectTownNetwork(tiles, towns)
   return towns
 }
 
-function placeTownClusters(tiles:number[][], rng:()=>number){
+function placeRegionTowns(tiles:number[][], rng:()=>number){
   const height = tiles.length
   const width = tiles[0]?.length ?? 0
-  const townCount = Math.max(2, Math.floor((width*height)/400))
-  const clusterCount = Math.max(1, Math.floor(townCount/2))
-  const clusters:{x:number;y:number}[] = []
-  let guard=0
-  while (clusters.length<clusterCount && guard++<500){
-    const x = Math.floor(rng()*width)
-    const y = Math.floor(rng()*height)
-    if (isTownCandidate(tiles, x, y)){
-      clusters.push({x,y})
-    }
-  }
-  if (!clusters.length){
-    clusters.push({ x: Math.floor(width/2), y: Math.floor(height/2) })
-  }
+  const regions = 3
+  const regionWidth = Math.floor(width/regions)
+  const regionHeight = Math.floor(height/regions)
   const towns:{x:number;y:number}[] = []
-  for (let i=0;i<townCount;i++){
-    const cluster = clusters[Math.floor(rng()*clusters.length)]
-    const spot = findTownSpotNear(cluster, tiles, rng, towns, width, height)
-    if (spot){
-      tiles[spot.y][spot.x] = 8
-      towns.push(spot)
+  for (let ry=0; ry<regions; ry++){
+    for (let rx=0; rx<regions; rx++){
+      const startX = rx*regionWidth
+      const endX = rx===regions-1 ? width-1 : (rx+1)*regionWidth - 1
+      const startY = ry*regionHeight
+      const endY = ry===regions-1 ? height-1 : (ry+1)*regionHeight - 1
+      for (let n=0;n<2;n++){
+        const spot = findTownSpotInRegion(startX, endX, startY, endY, tiles, rng, towns, width, height)
+        if (spot){
+          tiles[spot.y][spot.x] = 8
+          towns.push(spot)
+        }
+      }
     }
   }
   return towns
@@ -157,20 +155,37 @@ function placeTownClusters(tiles:number[][], rng:()=>number){
 
 function isTownCandidate(tiles:number[][], x:number, y:number){
   const tile = tiles[y]?.[x]
-  return tile===0 || tile===1 || tile===5 || tile===FIELD_TILE
+  if (!(tile===0 || tile===1 || tile===5 || tile===FIELD_TILE)) return false
+  const neighbors = [
+    [x+1,y],
+    [x-1,y],
+    [x,y+1],
+    [x,y-1]
+  ]
+  return neighbors.some(([nx,ny])=> isTownCandidateNeighbor(tiles, nx, ny))
 }
 
-function findTownSpotNear(center:{x:number;y:number}, tiles:number[][], rng:()=>number, placed:{x:number;y:number}[], width:number, height:number){
-  let attempts=0
-  let radius = 3
-  while (attempts++<250){
-    const angle = rng()*Math.PI*2
-    const distance = radius + rng()*4
-    const x = Math.max(0, Math.min(width-1, Math.round(center.x + Math.cos(angle)*distance + rng()*2-1)))
-    const y = Math.max(0, Math.min(height-1, Math.round(center.y + Math.sin(angle)*distance + rng()*2-1)))
+function isTownCandidateNeighbor(tiles:number[][], x:number, y:number){
+  const tile = tiles[y]?.[x]
+  return tile===0 || tile===1 || tile===5 || tile===FIELD_TILE || tile===6
+}
+
+function findTownSpotInRegion(startX:number, endX:number, startY:number, endY:number, tiles:number[][], rng:()=>number, placed:{x:number;y:number}[], width:number, height:number){
+  for (let attempts=0; attempts<300; attempts++){
+    const x = clamp(Math.floor(startX + rng()*(endX-startX+1)), 0, width-1)
+    const y = clamp(Math.floor(startY + rng()*(endY-startY+1)), 0, height-1)
     if (!isTownCandidate(tiles, x, y)) continue
-    if (placed.some(p=>Math.abs(p.x-x)+Math.abs(p.y-y) < 3)) continue
+    if (!hasPathToEdge(tiles, x, y)) continue
+    if (placed.some(p=>Math.abs(p.x-x)+Math.abs(p.y-y) < 6)) continue
     return { x, y }
+  }
+  for (let y=startY; y<=endY; y++){
+    for (let x=startX; x<=endX; x++){
+      if (!isTownCandidate(tiles, x, y)) continue
+      if (!hasPathToEdge(tiles, x, y)) continue
+      if (placed.some(p=>Math.abs(p.x-x)+Math.abs(p.y-y) < 6)) continue
+      return { x, y }
+    }
   }
   return undefined
 }
@@ -389,7 +404,57 @@ function digRiver(tiles:number[][], heightMap:number[][], sx:number, sy:number, 
 }
 
 function isProtectedTile(tile:number){
-  return tile===8 || tile===4
+  return tile===8 || tile===4 || tile===6
+}
+
+function isWalkableTile(tiles:number[][], x:number, y:number){
+  const tile = tiles[y]?.[x]
+  if (tile===undefined) return false
+  return WALKABLE_TILES.has(tile)
+}
+
+function hasPathToEdge(tiles:number[][], startX:number, startY:number){
+  if (!isWalkableTile(tiles, startX, startY)) return false
+  const height = tiles.length
+  const width = tiles[0]?.length ?? 0
+  const visited = new Set<string>()
+  const queue:[number, number][] = [[startX, startY]]
+  visited.add(`${startX},${startY}`)
+  while(queue.length){
+    const [x,y] = queue.shift()!
+    if (x===0 || y===0 || x===width-1 || y===height-1){
+      return true
+    }
+    const neighbors:[number, number][] = [
+      [x+1,y],[x-1,y],[x,y+1],[x,y-1]
+    ]
+    for (const [nx, ny] of neighbors){
+      const key = `${nx},${ny}`
+      if (visited.has(key)) continue
+      if (!isWalkableTile(tiles, nx, ny)) continue
+      visited.add(key)
+      queue.push([nx, ny])
+    }
+  }
+  return false
+}
+
+function findAccessibleEntrance(tiles:number[][], width:number, height:number, rng:()=>number){
+  for (let attempt=0; attempt<400; attempt++){
+    const x = Math.floor(rng()*width)
+    const y = Math.floor(rng()*height)
+    if (!isWalkableTile(tiles, x, y)) continue
+    if (!hasPathToEdge(tiles, x, y)) continue
+    return { x, y }
+  }
+  for (let y=0;y<height;y++){
+    for (let x=0;x<width;x++){
+      if (!isWalkableTile(tiles, x, y)) continue
+      if (!hasPathToEdge(tiles, x, y)) continue
+      return { x, y }
+    }
+  }
+  return undefined
 }
 
 
@@ -413,4 +478,8 @@ function mulberry32(a:number){
     t ^= t + Math.imul(t ^ t >>> 7, t | 61)
     return ((t ^ t >>> 14) >>> 0) / 4294967296
   }
+}
+
+function clamp(value:number, min:number, max:number){
+  return Math.max(min, Math.min(max, value))
 }

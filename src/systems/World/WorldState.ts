@@ -1,5 +1,9 @@
 import { BiomeConfig, BiomeId, biomes, getBiome } from '@content/biomes'
 import { DungeonLayout, generateWorld } from './Generator'
+import { townOrder } from '@content/towns'
+import { dungeonOrder } from '@content/dungeons'
+
+const TILE_SIZE = 16
 
 export interface WorldStateOptions {
   seed?: number|string
@@ -11,6 +15,7 @@ export class WorldState {
   tile:number[][]
   biomeMap:BiomeId[][]
   dungeons:DungeonLayout[]
+  towns:{x:number;y:number}[] = []
   seed:number
   // Player in pixels for smooth movement
   playerPx = { x: 0, y: 0 }
@@ -24,6 +29,8 @@ export class WorldState {
   playerFacing:'up'|'down'|'left'|'right' = 'down'
   playerMoving = false
   playerAnimTime = 0
+  private townLookup = new Map<string,string>()
+  private dungeonLookup = new Map<string,string>()
 
   constructor(w:number,h:number, options:WorldStateOptions = {}){
     this.width=w; this.height=h
@@ -31,15 +38,24 @@ export class WorldState {
     this.tile = generated.tiles
     this.biomeMap = generated.biomeMap
     this.dungeons = generated.dungeons
+    this.towns = generated.towns ?? []
+    this.registerTowns(this.towns)
+    this.registerDungeons(generated.dungeons ?? [])
     this.forestEdges = generated.forestEdges ?? []
     this.riverBanks = generated.riverBanks ?? []
     this.seed = generated.seed
     this.playerPx = this.spawnPoint()
   }
+  townIdAt(x:number,y:number){
+    return this.townLookup.get(`${x},${y}`)
+  }
+  dungeonIdAt(x:number,y:number){
+    return this.dungeonLookup.get(`${x},${y}`)
+  }
   isWalkable(c:number,r:number){ const t=this.tile[r]?.[c]??-1; return t===0||t===1||t===4||t===5||t===6||t===7||t===8||t===9 }
   isWalkableTile(tile:[number,number]){ return this.isWalkable(tile[0], tile[1]) }
   tileAtPx(px:number, py:number): [number,number]{ return [Math.floor(px/16), Math.floor(py/16)] }
-  playerTile(){ return this.tileAtPx(this.playerPx.x, this.playerPx.y) }
+  playerTile(){ return this.tileAtPx(this.playerPx.x + 8, this.playerPx.y + 8) }
   playerAt(cx:number,cy:number){ const [tx,ty]=this.playerTile(); return tx===cx && ty===cy }
   encounterRange():[number, number]{
     const biome = this.getBiomeAtTile(this.playerTile())
@@ -77,26 +93,66 @@ export class WorldState {
     return this.biomeCache.get(id)!
   }
   private spawnPoint(){
-    for (let y=0; y<this.height; y++){
-      for (let x=0; x<this.width; x++){
-        if (this.tile[y]?.[x] === 8){
-          return { x: x*16, y: y*16 }
-        }
-      }
+    const townCandidate = this.towns.find(t=>this.isAccessibleToEdge(t.x, t.y))
+    if (townCandidate){
+      return { x: townCandidate.x*TILE_SIZE, y: townCandidate.y*TILE_SIZE }
     }
-    const center = { x: Math.floor(this.width/2), y: Math.floor(this.height/2) }
-    const spiralLimit = Math.max(this.width, this.height)
-    for (let radius=0; radius<=spiralLimit; radius++){
-      for (let dx=-radius; dx<=radius; dx++){
-        for (let dy=-radius; dy<=radius; dy++){
-          const cx = center.x+dx
-          const cy = center.y+dy
-          if (!this.isWalkable(cx, cy)) continue
-          return { x: cx*16, y: cy*16 }
-        }
-      }
+    const fallback = this.findFirstAccessibleTile()
+    if (fallback){
+      return { x: fallback.x*TILE_SIZE, y: fallback.y*TILE_SIZE }
     }
     return { x:0, y:0 }
+  }
+  private registerTowns(towns:{x:number;y:number}[]){
+    const ids = townOrder.length ? townOrder : ['fogwood']
+    towns.forEach((coords, idx)=>{
+      const id = ids[idx % ids.length]
+      this.townLookup.set(`${coords.x},${coords.y}`, id)
+    })
+  }
+  private registerDungeons(dungeons:DungeonLayout[]){
+    const ids = dungeonOrder.length ? dungeonOrder : ['gloomhollow']
+    dungeons.forEach((dungeon, idx)=>{
+      const id = ids[idx % ids.length]
+      const coords = dungeon.entrance
+      this.dungeonLookup.set(`${coords.x},${coords.y}`, id)
+    })
+  }
+
+  private findFirstAccessibleTile(){
+    for (let y=0;y<this.height;y++){
+      for (let x=0;x<this.width;x++){
+        if (!this.isWalkable(x, y)) continue
+        if (!this.isAccessibleToEdge(x, y)) continue
+        return { x, y }
+      }
+    }
+    return undefined
+  }
+
+  private isAccessibleToEdge(startX:number, startY:number){
+    if (!this.isWalkable(startX, startY)) return false
+    const visited = new Set<string>()
+    const queue:[number, number][] = [[startX, startY]]
+    visited.add(`${startX},${startY}`)
+    while(queue.length){
+      const [x,y] = queue.shift()!
+      if (x===0 || y===0 || x===this.width-1 || y===this.height-1){
+        return true
+      }
+      const neighbors:[number, number][] = [
+        [x+1,y],[x-1,y],[x,y+1],[x,y-1]
+      ]
+      for (const [nx, ny] of neighbors){
+        if (nx<0||ny<0||nx>=this.width||ny>=this.height) continue
+        const key = `${nx},${ny}`
+        if (visited.has(key)) continue
+        if (!this.isWalkable(nx, ny)) continue
+        visited.add(key)
+        queue.push([nx, ny])
+      }
+    }
+    return false
   }
 }
 

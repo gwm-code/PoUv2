@@ -90,8 +90,9 @@ Supporting files:
 
 ## Key Systems
 ### World
-Noise-driven world generator with sector-based biomes, rivers, towns, and dungeon entrances. `WorldState` manages player movement, encounter rolls, minimap, and tile metadata. `WorldController` consumes input and triggers encounters/events; `WorldRenderer` draws tile sprites and overlays.
+Noise-driven world generator with sector-based biomes, rivers, towns, and dungeon entrances. The overworld now generates at **1024×1024 tiles** independent of the viewport; a camera follows the party while the minimap samples the full terrain. `WorldState` manages player movement, encounter rolls, minimap, and tile metadata. `WorldController` consumes input and triggers encounters/events; `WorldRenderer` draws tile sprites and overlays.
 - The overworld party marker now uses the dedicated world-map sprite sheet (4 directions, idle + walk cycle) so the squad feels grounded on the map instead of a placeholder box.
+- Collision sampling checks the party’s entire footprint against surrounding tiles so you can’t “clip” into mountains/water when approaching from odd angles.
 
 ### Combat
 `BattleScene` runs a deterministic state machine:
@@ -107,12 +108,26 @@ Recent HUD work splits canvas rendering from overlay layout; the overlay gets no
 ### Party & Gear
 `Party.ts` seeds the hero roster from `content/heroes.json`, tracks level/XP, and applies kill bonuses. `HeroStats.ts` aggregates equipment bonuses. `CharacterEquipmentOverlay` + `PartyOverlay` expose drag/drop and active-party selection.
 
+### Towns
+Interacting with a town tile (`8`) now loads a dedicated `TownScene`. The first slice, **Fogwood Watch**, is a 32×20 handcrafted layout with NPC dialogue hooks and a three-tile southern gate (stand on any of the road tiles and press Enter to leave). The Ashen Barrens now route to **Emberfall Crossing**, a forge-heavy town with lava-side NPC chatter. Towns reuse the overworld palette but swap in bespoke roof/farm/forge tiles so designers can sketch cozy hubs while combat systems continue evolving independently.
+
+### Dungeons
+`DungeonScene` handles handcrafted caverns with collision, random encounters, and exit tiles. **Gloomhollow Sink** is the first playable dungeon: traverse the tight corridors, trigger encounters (manual encounters respected here too), and press Enter on the glowing exit tiles to surface.
+
 ---
 
 ## Current Status (Nov 12, 2025)
 High-level summary from the latest `progress.md` entry:
 - **HUD Restructure:** Action/party panels moved into the battlefield frame; enemy summary added; height/padding tuned for readability.
 - **Inline Bars:** Both heroes and enemies now display HP/MP bars inline with their text to keep vitals consistent across overlays.
+- **Enemy Roster:** Early encounters now draw from a 22-creature Lv1–10 bestiary (foxes, imps, shamblers, corrupted villagers, etc.) with unique stat curves and dedicated sprite hooks so future areas can scale difficulty cleanly.
+- **Dynamic Scaling:** The encounter factory now reads the average level of the roster’s top three heroes (so you can’t bench everyone to cheese) and picks enemies within that band, giving smooth difficulty bumps even before region-tiered maps land.
+- **Sprite Fallbacks:** Battle rendering now looks up each enemy’s dedicated sprite filename (and falls back to Mistling/default geometry if the PNG is missing/corrupt) so you can drop new art without code changes.
+- **Town Prototype:** Fogwood Watch is fully playable—press Enter on any overworld town tile to load the handcrafted hub, chat with three NPCs for lore/tips, then press Enter at the south gate (or Esc) to return to the world map.
+- **Dungeon Debut:** Dungeon tiles now lead into Gloomhollow Sink, a multi-room battle crawl with manual encounter support and handcrafted collision.
+- **Full Map & Camera:** The overworld now spans 1024×1024 tiles with a camera-follow renderer plus a down-sampled minimap, so larger handcrafted biomes fit without shrinking the viewport.
+- **Second Hub & Collision Update:** Emberfall Crossing anchors the Ashen Barrens, and overworld collision now checks the party’s full footprint so mountains/water feel solid no matter the approach angle.
+- **Manual Encounter Switch:** Settings now expose a Manual Battles toggle for testing—flip it on to disable overworld auto-encounters and fire fights manually with Enter/Space while you roam the map.
 - **World/Combat Systems:** Stable seeded world gen, multi-tier battle menus, overlays for inventory/party/equipment, autosave on pause.
 - **Missing Notes:** There was an unlogged session between Nov 11 and Nov 12 due to a crash. If something feels out of sync, check `git log` and the code rather than relying solely on the written log.
 

@@ -8,6 +8,8 @@ import type { Hero } from '@systems/Party/Types'
 import { WorldScene } from '@scenes/WorldScene'
 import { BattleScene } from '@scenes/BattleScene'
 import { MistTransitionScene } from '@scenes/MistTransitionScene'
+import { TownScene } from '@scenes/TownScene'
+import { DungeonScene } from '@scenes/DungeonScene'
 import type { Bag } from '@systems/Inventory/Inventory'
 import { useCanvas } from './hooks/useCanvas'
 import { useGameLoop } from './hooks/useGameLoop'
@@ -15,8 +17,11 @@ import { useKeyboardInput } from './hooks/useKeyboardInput'
 import { CharacterEquipmentOverlay } from '@ui/CharacterEquipmentOverlay'
 import { BattleHudOverlay } from '@ui/Battle/BattleHudOverlay'
 import { TILE_SIZE, VIEWPORT_PRESETS, resolveViewport, type ViewportPresetKey } from '@config/display'
+import { WORLD_MAP_WIDTH, WORLD_MAP_HEIGHT } from '@config/world'
 import { GameMenuOverlay, type GameMenuTab } from '@ui/Menu/GameMenuOverlay'
 import frameTexture from './assets/frame.png'
+import { getTown } from '@content/towns'
+import { getDungeon, defaultDungeon } from '@content/dungeons'
 
 const SAVE_KEY = 'mistheart_autosave'
 const baseTextColor = 'var(--mh-gold, #cba76b)'
@@ -30,6 +35,7 @@ export interface GameSettings {
   fullscreen:boolean
   resolutionScale:ResolutionScale
   viewportPreset:ViewportPresetKey
+  manualEncounters:boolean
 }
 
 export const defaultSettings:GameSettings = {
@@ -37,7 +43,8 @@ export const defaultSettings:GameSettings = {
   encounterRate:1,
   fullscreen:false,
   resolutionScale:'fit',
-  viewportPreset:'widescreen'
+  viewportPreset:'widescreen',
+  manualEncounters:false
 }
 
 export const resolutionOptions:ResolutionScale[] = ['fit','fill',1,2,3,4]
@@ -224,6 +231,25 @@ export function SettingsOverlay({ settings, onChange, onClose }:{ settings:GameS
         </div>
       </div>
       <div style={{ marginBottom:16 }}>
+        <strong>Testing</strong>
+        <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:6 }}>
+          <button
+            onClick={()=>update({ manualEncounters: !settings.manualEncounters })}
+            style={{
+              flex:'0 0 auto',
+              padding:'6px 12px',
+              border:'1px solid #7a6bff',
+              background:settings.manualEncounters ? '#332a63' : '#1a1530',
+              color:baseTextColor,
+              cursor:'pointer'
+            }}
+          >
+            Manual Battles: {settings.manualEncounters ? 'ON' : 'OFF'}
+          </button>
+          <span style={{ fontSize:11, color:'#cfd2ff' }}>ON = disables random encounters; press Enter/Space to spawn a battle.</span>
+        </div>
+      </div>
+      <div style={{ marginBottom:16 }}>
         <strong>Resolution Scale</strong>
         <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginTop:6 }}>
           {resolutionOptions.map(option=>{
@@ -339,30 +365,79 @@ export default function MistheartGame({ onQuit, settings, onChangeSettings }:Mis
     'scout-greaves':1
   })
   const createWorldScene = useCallback((world:WorldState, party:Hero[], bag:Bag, dims = viewport)=>{
+    const pushWorldBattle = (battle:BattleScene, ctx:{ world:WorldState; ui:any })=>{
+      const transition = new MistTransitionScene(dims.width, dims.height, {
+        world: ctx.world,
+        ui: ctx.ui,
+        onComplete: ()=>{
+          const gameInstance = gameRef.current
+          if (!gameInstance) return
+          gameInstance.pop()
+          inBattleRef.current = true
+          gameInstance.push(battle)
+        }
+      })
+      gameRef.current?.push(transition)
+    }
+    const popBattle = ()=>{
+      inBattleRef.current = false
+      gameRef.current?.pop()
+    }
+    const manualSwitch = ()=>settingsRef.current.manualEncounters
+    const pushDungeonBattle = (battle:BattleScene)=>{
+      const gameInstance = gameRef.current
+      if (!gameInstance) return
+      inBattleRef.current = true
+      gameInstance.push(battle)
+    }
+    const openTown = (townId:string)=>{
+      const town = getTown(townId)
+      if (!town){
+        console.warn(`Unknown town id ${townId}`)
+        return
+      }
+      const townScene = new TownScene(
+        dims.width,
+        dims.height,
+        town,
+        ()=>{
+          gameRef.current?.pop()
+        }
+      )
+      gameRef.current?.push(townScene)
+    }
+    const openDungeon = (dungeonId:string)=>{
+      const dungeonDef = getDungeon(dungeonId) ?? defaultDungeon
+      if (!dungeonDef || !dungeonDef.spawn){
+        console.warn(`No dungeon definition available (requested "${dungeonId}")`)
+        return
+      }
+      const dungeonScene = new DungeonScene(
+        dims.width,
+        dims.height,
+        dungeonDef,
+        party,
+        bag,
+        pushDungeonBattle,
+        popBattle,
+        manualSwitch,
+        ()=>{
+          gameRef.current?.pop()
+        }
+      )
+      gameRef.current?.push(dungeonScene)
+    }
     return new WorldScene(
       dims.width,
       dims.height,
       world,
       party,
       bag,
-      (battle:BattleScene, ctx)=>{
-        const transition = new MistTransitionScene(dims.width, dims.height, {
-          world: ctx.world,
-          ui: ctx.ui,
-          onComplete: ()=>{
-            const gameInstance = gameRef.current
-            if (!gameInstance) return
-            gameInstance.pop()
-            inBattleRef.current = true
-            gameInstance.push(battle)
-          }
-        })
-        gameRef.current?.push(transition)
-      },
-      ()=>{
-        inBattleRef.current = false
-        gameRef.current?.pop()
-      }
+      pushWorldBattle,
+      popBattle,
+      manualSwitch,
+      openTown,
+      openDungeon
     )
   },[viewport])
   const buildSavePayload = useCallback(()=>{
@@ -392,7 +467,7 @@ export default function MistheartGame({ onQuit, settings, onChangeSettings }:Mis
     partyRef.current = heroes
     const presetKey = save.settings?.viewportPreset ?? defaultSettings.viewportPreset
     const targetViewport = resolveViewport(presetKey)
-    const world = new WorldState(targetViewport.cols, targetViewport.rows, { seed: save.seed })
+    const world = new WorldState(WORLD_MAP_WIDTH, WORLD_MAP_HEIGHT, { seed: save.seed })
     world.playerPx.x = save.player?.x ?? world.playerPx.x
     world.playerPx.y = save.player?.y ?? world.playerPx.y
     world.minimapMode = save.minimapMode ?? 0
@@ -411,7 +486,7 @@ export default function MistheartGame({ onQuit, settings, onChangeSettings }:Mis
 
     Input.attach()
     const gameInstance = new Game(viewport.width, viewport.height)
-    const world = new WorldState(viewport.cols, viewport.rows)
+    const world = new WorldState(WORLD_MAP_WIDTH, WORLD_MAP_HEIGHT)
     worldRef.current = world
     const party = createHeroes(heroesData as any)
     partyRef.current = party

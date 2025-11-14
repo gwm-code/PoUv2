@@ -1,4 +1,244 @@
 [
-  {"id":"mistling","name":"Mistling","hp":24,"atk":5,"agi":6,"xp":6,"gold":4},
-  {"id":"shambler","name":"Shambler","hp":30,"atk":6,"agi":5,"xp":8,"gold":6}
+  {
+    "id": "ravage_fox",
+    "name": "Ravage Fox",
+    "level": 1,
+    "hp": 20,
+    "atk": 5,
+    "agi": 9,
+    "xp": 5,
+    "gold": 3,
+    "sprite": "enemy_ravage_fox.png"
+  },
+  {
+    "id": "possessed_possum",
+    "name": "Possessed Possum",
+    "level": 1,
+    "hp": 24,
+    "atk": 4,
+    "agi": 6,
+    "xp": 5,
+    "gold": 4,
+    "sprite": "enemy_possessed_possum.png"
+  },
+  {
+    "id": "infected_rat",
+    "name": "Infected Rat",
+    "level": 1,
+    "hp": 16,
+    "atk": 4,
+    "agi": 7,
+    "xp": 4,
+    "gold": 2,
+    "sprite": "enemy_infected_rat.png"
+  },
+  {
+    "id": "mist_drunk_squirrel",
+    "name": "Mist-Drunk Squirrel",
+    "level": 2,
+    "hp": 22,
+    "atk": 5,
+    "agi": 10,
+    "xp": 6,
+    "gold": 4,
+    "sprite": "enemy_mist_drunk_squirrel.png"
+  },
+  {
+    "id": "hollow_crow",
+    "name": "Hollow Crow",
+    "level": 2,
+    "hp": 24,
+    "atk": 6,
+    "agi": 11,
+    "xp": 7,
+    "gold": 5,
+    "sprite": "enemy_hollow_crow.png"
+  },
+  {
+    "id": "spore_hare",
+    "name": "Spore Hare",
+    "level": 2,
+    "hp": 28,
+    "atk": 6,
+    "agi": 7,
+    "xp": 7,
+    "gold": 5,
+    "sprite": "enemy_spore_hare.png"
+  },
+  {
+    "id": "muddler_toad",
+    "name": "Muddler Toad",
+    "level": 3,
+    "hp": 40,
+    "atk": 7,
+    "agi": 5,
+    "xp": 9,
+    "gold": 6,
+    "sprite": "enemy_muddler_toad.png"
+  },
+  {
+    "id": "briar_serpent",
+    "name": "Briar Serpent",
+    "level": 3,
+    "hp": 34,
+    "atk": 8,
+    "agi": 9,
+    "xp": 10,
+    "gold": 7,
+    "sprite": "enemy_briar_serpent.png"
+  },
+  {
+    "id": "mistling",
+    "name": "Mistling",
+    "level": 3,
+    "hp": 32,
+    "atk": 7,
+    "agi": 11,
+    "xp": 10,
+    "gold": 7,
+    "sprite": "enemy_mistling.png"
+  },
+  {
+    "id": "gutter_mite_swarm",
+    "name": "Gutter Mite Swarm",
+    "level": 4,
+    "hp": 45,
+    "atk": 7,
+    "agi": 10,
+    "xp": 12,
+    "gold": 7,
+    "sprite": "enemy_gutter_mite_swarm.png"
+  },
+  {
+    "id": "twitchjaw_badger",
+    "name": "Twitchjaw Badger",
+    "level": 4,
+    "hp": 52,
+    "atk": 11,
+    "agi": 6,
+    "xp": 13,
+    "gold": 8,
+    "sprite": "enemy_twitchjaw_badger.png"
+  },
+  {
+    "id": "blister_beetle_cluster",
+    "name": "Blister Beetle Cluster",
+    "level": 5,
+    "hp": 60,
+    "atk": 9,
+    "agi": 8,
+    "xp": 15,
+    "gold": 9,
+    "sprite": "enemy_blister_beetle_cluster.png"
+  },
+  {
+    "id": "mist_gnawed_hound",
+    "name": "Mist-Gnawed Hound",
+    "level": 5,
+    "hp": 58,
+    "atk": 12,
+    "agi": 9,
+    "xp": 16,
+    "gold": 10,
+    "sprite": "enemy_mist_gnawed_hound.png"
+  },
+  {
+    "id": "shambler",
+    "name": "Shambler",
+    "level": 5,
+    "hp": 78,
+    "atk": 12,
+    "agi": 6,
+    "xp": 17,
+    "gold": 11,
+    "sprite": "enemy_shambler.png"
+  },
+  {
+    "id": "scavenger_vulture",
+    "name": "Scavenger Vulture",
+    "level": 6,
+    "hp": 66,
+    "atk": 11,
+    "agi": 11,
+    "xp": 18,
+    "gold": 11,
+    "sprite": "enemy_scavenger_vulture.png"
+  },
+  {
+    "id": "thornback_boar",
+    "name": "Thornback Boar",
+    "level": 6,
+    "hp": 84,
+    "atk": 13,
+    "agi": 5,
+    "xp": 19,
+    "gold": 12,
+    "sprite": "enemy_thornback_boar.png"
+  },
+  {
+    "id": "pallid_wildcat",
+    "name": "Pallid Wildcat",
+    "level": 7,
+    "hp": 72,
+    "atk": 14,
+    "agi": 12,
+    "xp": 22,
+    "gold": 13,
+    "sprite": "enemy_pallid_wildcat.png"
+  },
+  {
+    "id": "stalking_raccoon",
+    "name": "Stalking Raccoon",
+    "level": 7,
+    "hp": 68,
+    "atk": 12,
+    "agi": 10,
+    "xp": 21,
+    "gold": 15,
+    "sprite": "enemy_stalking_raccoon.png"
+  },
+  {
+    "id": "mistling_imp",
+    "name": "Mistling Imp",
+    "level": 8,
+    "hp": 75,
+    "atk": 15,
+    "agi": 13,
+    "xp": 24,
+    "gold": 14,
+    "sprite": "enemy_mistling_imp.png"
+  },
+  {
+    "id": "shriveled_forager",
+    "name": "Shriveled Forager",
+    "level": 8,
+    "hp": 88,
+    "atk": 12,
+    "agi": 7,
+    "xp": 25,
+    "gold": 18,
+    "sprite": "enemy_shriveled_forager.png"
+  },
+  {
+    "id": "weeping_shade_cub",
+    "name": "Weeping Shade Cub",
+    "level": 9,
+    "hp": 90,
+    "atk": 16,
+    "agi": 12,
+    "xp": 28,
+    "gold": 16,
+    "sprite": "enemy_weeping_shade_cub.png"
+  },
+  {
+    "id": "feral_woodcutter",
+    "name": "Feral Woodcutter",
+    "level": 10,
+    "hp": 120,
+    "atk": 20,
+    "agi": 8,
+    "xp": 35,
+    "gold": 22,
+    "sprite": "enemy_feral_woodcutter.png"
+  }
 ]

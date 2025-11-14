@@ -1,5 +1,23 @@
 # Mistheart Modular Progress Log
 
+## 2025-11-15
+- Imported the Lv1–10 enemy roster from the mist bestiary doc, assigned combat stats/XP/gold curves, and wired sprite filename hooks for each creature so art can drop straight into `assets`.
+- Rebalanced legacy Mistling/Shambler entries to fit the new curve and expanded `content/enemies.json` to 22 entries with level metadata for future encounter-scaling work.
+- Updated the encounter factory to draw random low-level pairs by default (falling back to the full pool if needed) so test fights now surface the broader fauna instead of the first two JSON entries.
+- Hooked party-aware scaling into encounters: we now read the average level of the roster’s three strongest heroes and restrict enemy selection to that band so difficulty climbs naturally even before biome gating is in place.
+- Taught the battle renderer to load per-enemy sprite filenames (with automatic fallback to Mistling/default blocks if a PNG is missing/corrupt), so art updates no longer need code changes.
+- Added a “Manual Battles” toggle to Settings for QA runs: when enabled the overworld suppresses random encounters and pressing Enter/Space spawns a fight on demand, making traversal testing painless.
+- Built the first town hub (**Fogwood Watch**): handcrafted 32×20 layout, three NPCs with lore/testing tips, custom roof/farm tiles, and a south gate exit so designers can iterate on hub flows without touching the generator.
+- Dropped the first playable dungeon (**Gloomhollow Sink**): handcrafted cavern layout, collision-aware movement, random encounters (or manual battles if the toggle is on), and glowing exit tiles that return you to the overworld.
+- Introduced **Emberfall Crossing**, a second town for the Ashen Barrens with forge NPCs, lava-side layout, and automatic gate detection so multiple hubs can coexist as the generator spawns more towns.
+- Refined the Fogwood UX: entering works whether you stand on or in front of the marker, exiting now requires pressing Enter at the south gate (no more accidental Esc behavior), bounds are clamped so you can’t walk off-screen, and the biome label correctly shows town metadata.
+- Standardised town gates: Fogwood’s southern boundary now uses a 3‑tile road aperture, and any of those tiles counts as an exit so hubs feel more generous while staying lore-friendly.
+- Allowed those gate tiles to be considered walkable so you can stand on any of them and exit without fighting the collision mask; feet-based tile detection ensures the prompt and interaction align.
+- Auto-derived the exit tile list from the town layout template, guaranteeing all rendered gate tiles (not neighboring forests) get registered as valid exits even if we tweak ASCII art later.
+- Tightened overworld collision: movement now tests the hero’s full bounding box against surrounding tiles, so you can’t slide partway into mountains/water when approaching from specific angles.
+- Scaled the overworld up to a 1024×1024 map with camera-follow rendering and a sampled minimap, so we can start authoring full biome layouts without shrinking the viewport.
+- Documented the refreshed roster in `README.md` for continuity.
+
 ## 2025-11-14
 - Wired a dedicated start-menu theme (`Into the Mistheart.mp3`) that lives at the app level, loops softly while the title screen is visible, and pauses/resets automatically when launching the game or muting the track.
 - Added a gold-accented speaker toggle to the start menu; the mute state persists via `localStorage` so returning to the menu keeps the player’s preference, and the same state now governs whether audio auto-plays after fullscreen prompts.
